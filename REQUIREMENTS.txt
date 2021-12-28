@@ -1,0 +1,9 @@
+python3 -m pip install Pillow
+python3 -m pip install adbutils
+python3 -m pip install PySimpleGUI
+python3 -m pip install pure-python-adb
+python3 -m pip install opencv-python
+python3 -m pip install psutil
+python3 -m pip install aiofiles
+python3 -m pip install pytesseract
+python3 -m pip install python-dateutil
