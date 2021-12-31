@@ -13,7 +13,7 @@ import numpy as np
 import os
 import time
 import re
-logged = 1
+logged = 0
 loggedStep = 0
 threadLogin = False
 ThreadProcess = False
@@ -39,6 +39,7 @@ def loopLoggin():
     global Try
     if threadLogin != False and threadLogin.isAlive():
         threadLogin.cancel()
+        thread = False
       
     threadLogin = threading.Timer(15.0, loopLoggin)
     threadLogin.setName("TLOGIN")
@@ -65,6 +66,7 @@ def loopLoggin():
         assert not isinstance(now, type(None)), 'image not found'
         Try = 0
         doLogin()
+    #threadLogin.join()        
 
 # check playstore service has stopped and touch tap
 def checkStopService():

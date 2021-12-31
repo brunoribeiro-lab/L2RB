@@ -13,10 +13,11 @@ elite = 0
 # spot Elite, x, y ( 0 in spot elite is like normal field)
 spotLocation = [[32, 527, 206], [32, 510, 256]]
 spotFieldLocation = [[ 488, 295], [ 493, 203]]
-spotWorldDungeonLocation = [[406, 607], [433, 612]]
+spotWorldDungeonLocation = [[682, 358], [433, 612]]
 fieldOrElite = 'WD' # elite
 inExecution = 0
 channel = 1
+currentStep = 0 # 0 = not dungeon, 1 enter 
 lastCheck = datetime.now()
 lastDied = datetime.now()
 backing = 0
@@ -32,10 +33,14 @@ def loopFarming():
     global thread
     if thread != False and thread.isAlive():
         thread.cancel()
+        thread = False
         
-    thread = threading.Timer(15.0, loopFarming)  # every 7 minutes
+    thread = threading.Timer(8.0, loopFarming)  # every 7 minutes
+    thread.daemon = True
+    thread.setName("Farming Thread")
     thread.start()
     doFarming()
+    #thread.join()
 
 
 def doFarming():
@@ -73,10 +78,31 @@ def doFarming():
         inExecution = 1
         checkStopService()
         print("Farming")
-        checkDie()
+        checkStep()
+        #checkDie()
         inExecution = 0
 
-
+def checkStep():
+    global currentStep
+    print("Farming : Checking Steps")
+    if currentStep != 3:
+        detectImInDungeon()
+    
+    if currentStep == 0:  # Main screen
+        print("Step 0")
+        step00()
+    elif currentStep == 1: # Touch Dungeon
+        print("Step 1")
+        detectInvalidStep()
+        step01()
+    elif currentStep == 2: # Touch in Normal Dungeon
+        print("Step 2")
+        detectInvalidStep()
+        step02()
+    elif currentStep == 3:  # Farming
+        print("Step 3")
+        checkDie()
+        
 def checkDie():
     global die, inventory ,lastDied ,farming, spotLocation, spotFieldLocation, fieldOrElite, backing, lastCheck
     from .loginL2 import now  # current now
@@ -93,6 +119,7 @@ def checkDie():
     if findImage(now, die) or text.find("illed by") > 0:
         lastDied = datetime.now()
         print("I die back to spot")
+        lastCheck = False
         farming = 0
         backing = 1
         revival()
@@ -100,13 +127,15 @@ def checkDie():
         backing = 0
         return True
     else:
+        detectImNotInDungeon()
         # Yeah, I'm living
         if smarthDetectImFarming() : # melhorar isso aqui ta errado
             print("I'm farming right now")
             lastCheck = current
 
         if backing == 0 and  findImage(now, inventory) == False:
-            detectAutoOn() # is auto ?
+            if detectMainScreen():
+                detectAutoOn() # is auto ?
         #if backing == 0 :
         #    detectAutoOn() # is auto ?                
         print("Last Check")
@@ -127,12 +156,44 @@ def checkDie():
             
         return False
 
+
+def step02():
+    global currentStep, thread
+    if countPixelsInPosition(633,849,305,60,[42,91,61], 1000, 100000):
+        touch(1028, 673)  # touch in Entry Request
+        currentStep = 3
+        #thread.cancel()
+    
+    
+def step00():
+    global currentStep
+    touch(923, 30)  # touch(235, 400)
+    from .loginL2 import text  # extracted text
+    if text.find('Dungeon'):
+        touch(300, 659)  # touch in dungeon
+        time.sleep(1)
+        liveScreen()
+        time.sleep(3)
+        currentStep = 1  # run to NPC
+
+
+def step01():
+    global currentStep, thread
+    from .loginL2 import text  # extracted text
+    if text.find('Normal Dungeon') or text.find('Temporal Rift'):
+        currentStep = 2  # run to NPC
+        touch(988, 517)  # touch in World Dungeon
+        time.sleep(1)
+        liveScreen()
+        time.sleep(3)
+        #thread.cancel()
+
 def revival():
     global fieldOrElite
     print("Back to live")
     touch(637, 480)  # click in OK
     time.sleep(1)
-    touch(637, 480)  # click in OK
+    touch(635, 500)  # click in OK
     time.sleep(1)
     
     if fieldOrElite == 'WD': # World Dungeon
@@ -164,7 +225,8 @@ def backToFarm():
         touch(spotWorldDungeonLocation[index][0], spotWorldDungeonLocation[index][1])  # 505, 581 # campo 700, 560   elite  797, 659
         
     # 530 undead  423, 291 | 466, 342
-    time.sleep(35)  # 43
+    if fieldOrElite != 'WD' :
+        time.sleep(35)  # 43
     # set auto
     touch(1089, 850)
 
@@ -252,7 +314,7 @@ def smarthDetectImFarming():
     from .loginL2 import now, text  # extracted text
     global fieldOrElite, life
 
-    if fieldOrElite == "WD" and countPixelsInPosition(67, 506, 250,20,[184, 15, 15], 100, 10000, True):
+    if fieldOrElite == "WD" and detectMainScreen() and countPixelsInPosition(67, 506, 250,20,[184, 15, 15], 100, 10000, True):
         print("Farming in World Dungeon")
         return True
     #elif fieldOrElite == "WD" and (checkExist("Resources\monster0.png") or text.find('World Dungeon') > 0 or text.find('Berserker') > 0 or text.find('Berse') > 0  or text.find('Manipulated') > 0 or text.find("Manipula") > 0 or text.find("Manimilate") > 0 or text.find("erker") > 0 or text.find("Manipul") > 0) : 
@@ -281,3 +343,44 @@ def smarthDetectImFarming():
         return True
     else:
         return False
+    
+def detectImNotInDungeon():
+    global currentStep
+    if countPixelsInPosition(137,1102,25,40,[73,78,75], 1, 100):
+        print("Leave from World Dungeon")
+        currentStep = 0
+    elif countPixelsInPosition(137,1102,25,40,[199, 199, 198], 1, 100):
+        print("Leave from World Dungeon")
+        currentStep = 0
+  
+def detectImInDungeon():
+    global currentStep
+    if not countPixelsInPosition(137,1102,25,40,[73,78,75], 1, 100):
+        print("Leave from World Dungeon")
+        currentStep = 3
+    elif not countPixelsInPosition(137,1102,25,40,[199, 199, 198], 1, 100):
+        print("Leave from World Dungeon")
+        currentStep = 3
+        
+def detectInvalidStep():
+    global currentStep
+    if detectMainScreen(): # todo check pot 100
+        print("Invalid Step")
+        currentStep = 0
+        return True
+    return False
+    
+def detectMainScreen():
+    if checkExist("Resources\pot.png"): # todo check pot 100
+        return True
+    elif checkExist("Resources\pot2.png"): # todo check pot 100
+        return True
+    elif checkExist("Resources\pot3.png"):  # offline mode
+        return True
+    elif checkExist("Resources\pot4.png"):  # offline mode
+        return True
+    elif checkExist("Resources\pot5.png"):  # offline mode
+        return True
+    elif checkExist("Resources\pot6.png"):  # offline mode
+        return True
+  
