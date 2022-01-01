@@ -32,7 +32,6 @@ def loopScrollQuest():
     # maybe this can get a great performace
     if thread != False and thread.isAlive():
         thread.cancel()
-        thread = False # clear RAM cache
         
     thread = threading.Timer(6.0, loopScrollQuest)
     thread.start()

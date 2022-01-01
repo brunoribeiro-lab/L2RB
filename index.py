@@ -190,10 +190,10 @@ def checkEmulatorIsOpen(name):
             print("File not exist")
     loopLoggin()
     loopSummoningCircle()
-    loopDailyDungeon() # DONE
-    loopTowerOfInsolence()  # DONE
+    #loopDailyDungeon() # DONE
+    #loopTowerOfInsolence()  # DONE
     loopTempleGuardian() # DONE
-    loopEliteQuest()
+    #loopEliteQuest()
     loopScrollQuest() #
     loopFarming()
 

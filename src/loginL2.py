@@ -13,7 +13,7 @@ import numpy as np
 import os
 import time
 import re
-logged = 0
+logged = 1
 loggedStep = 0
 threadLogin = False
 ThreadProcess = False
@@ -44,6 +44,10 @@ def loopLoggin():
     threadLogin = threading.Timer(15.0, loopLoggin)
     threadLogin.setName("TLOGIN")
     threadLogin.start()
+    from .SummoningCircle import finishedSummoningCircle
+    from .TempleGuardian import finishedTempleGuardian
+    if finishedSummoningCircle == 0 or finishedTempleGuardian == 0:
+        return False
     
     liveScreen()
     if os.path.isfile('./now.png') == True:
