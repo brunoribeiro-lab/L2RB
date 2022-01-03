@@ -145,6 +145,10 @@ def step04():
         touch(1073, 644) # Touch in Enter
         time.sleep(1)
         touch(755, 503) # Auto Join
+        time.sleep(1)
+        touch(1103, 83) # Close AUto Join
+        time.sleep(1)
+        touch(1244, 39) # Back to main screen
         currentStepTempleGuardian = 5
 
 def step06():
@@ -329,7 +333,13 @@ def detectCurrentStep():
     elif countPixelsInPosition(500, 103, 45, 20, [210, 210, 210], 1, 30,True) and countPixelsInPosition(500, 277, 45, 45, [210, 210, 210], 1, 30,True):
         currentStepTempleGuardian = 2  
         return True
+    elif countPixelsInPosition(500, 103, 45, 20, [209, 209, 210], 1, 30,True) and countPixelsInPosition(500, 277, 45, 45, [209, 209, 210], 1, 30,True):
+        currentStepTempleGuardian = 2  
+        return True
     elif countPixelsInPosition(635, 451, 40, 50, [210, 210, 210], 1, 30,True) and countPixelsInPosition(655, 277, 45, 20, [210, 210, 210], 1, 30,True):
+        currentStepTempleGuardian = 1    
+        return True
+    elif countPixelsInPosition(635, 451, 40, 50, [209, 209, 210], 1, 30,True) and countPixelsInPosition(655, 277, 45, 20, [209, 209, 210], 1, 30,True):
         currentStepTempleGuardian = 1    
         return True
     elif currentStepTempleGuardian != 0 and currentStepTempleGuardian != 5 and detectInvalidStep():

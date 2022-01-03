@@ -159,10 +159,10 @@ def step04():
         touch(1073, 644) # Touch in Enter
         time.sleep(1)
         touch(755, 503) # Auto Join
-        # time.sleep(2)
-        # touch(1376, 104) # Close AUto Join
-        # time.sleep(2)
-        # touch(1556, 49) # Back to main screen
+        time.sleep(1)
+        touch(1103, 83) # Close AUto Join
+        time.sleep(1)
+        touch(1244, 39) # Back to main screen
         currentStepSummoningCircle = 5
     
 def step05():
@@ -208,7 +208,13 @@ def detectCurrentStep():
     elif countPixelsInPosition(500, 103, 45, 20, [210, 210, 210], 1, 30,True) and countPixelsInPosition(500, 277, 45, 45, [210, 210, 210], 1, 30,True):
         currentStepSummoningCircle = 2  
         return True
+    elif countPixelsInPosition(500, 103, 45, 20, [209, 209, 210], 1, 30,True) and countPixelsInPosition(500, 277, 45, 45, [209, 209, 210], 1, 30,True):
+        currentStepSummoningCircle = 2  
+        return True
     elif countPixelsInPosition(635, 451, 40, 50, [210, 210, 210], 1, 30,True) and countPixelsInPosition(655, 277, 45, 20, [210, 210, 210], 1, 30,True):
+        currentStepSummoningCircle = 1    
+        return True
+    elif countPixelsInPosition(635, 451, 40, 50, [209, 209, 210], 1, 30,True) and countPixelsInPosition(655, 277, 45, 20, [209, 209, 210], 1, 30,True):
         currentStepSummoningCircle = 1    
         return True
     elif currentStepSummoningCircle != 0 and currentStepSummoningCircle != 5 and detectInvalidStep():

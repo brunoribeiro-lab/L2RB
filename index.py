@@ -189,10 +189,10 @@ def checkEmulatorIsOpen(name):
         except IOError:
             print("File not exist")
     loopLoggin()
-    loopSummoningCircle()
+    #loopSummoningCircle()
     #loopDailyDungeon() # DONE
     #loopTowerOfInsolence()  # DONE
-    loopTempleGuardian() # DONE
+    #loopTempleGuardian() # DONE
     #loopEliteQuest()
     loopScrollQuest() #
     loopFarming()
