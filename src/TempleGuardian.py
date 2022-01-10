@@ -39,6 +39,7 @@ def loopTempleGuardian():
             jumpsC += 1
         
     thread = threading.Timer(12.0, loopTempleGuardian)
+    thread.daemon = True # stop if the program exits
     thread.start()
     doTempleGuardian()
 
@@ -199,7 +200,7 @@ def markLikeDone():
     finishedTempleGuardian = 1
     time.sleep(15)
     touch(1243, 39)  # back to main screen
-    time.sleep(5)
+    time.sleep(10)
 
 
 def detectAreInEnd():

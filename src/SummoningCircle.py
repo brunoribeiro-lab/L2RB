@@ -34,6 +34,7 @@ def loopSummoningCircle():
             jumpsC += 1
         
     thread = threading.Timer(12.0, loopSummoningCircle)
+    thread.daemon = True # stop if the program exits
     thread.start()
     doSummoningCircle()
 
@@ -231,7 +232,7 @@ def markLikeDone():
     finishedSummoningCircle = 1
     time.sleep(15)
     touch(1243, 39)  # back to main screen
-    time.sleep(5)
+    time.sleep(10)
     
 
 def detectAreInEnd():

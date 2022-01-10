@@ -188,11 +188,12 @@ def checkEmulatorIsOpen(name):
             os.remove("now.png")
         except IOError:
             print("File not exist")
+            
     loopLoggin()
-    #loopSummoningCircle()
+    loopSummoningCircle()
     #loopDailyDungeon() # DONE
     #loopTowerOfInsolence()  # DONE
-    #loopTempleGuardian() # DONE
+    loopTempleGuardian() # DONE
     #loopEliteQuest()
     loopScrollQuest() #
     loopFarming()
@@ -226,8 +227,6 @@ def make_window(theme):
     
     input_layout = [[sg.Menu(menu_def, key='-MENU-')],
                     [sg.Text('Farm Mode')],
-                    [sg.Image(data=get_img_data("Resources\map.png", maxsize=(
-                        480, 360), first=True),  k='-IMAGECAVE-')],
               
                     [sg.Text('Quests')],
                     [sg.Checkbox('Main Quests', default=True,
@@ -272,8 +271,9 @@ def make_window(theme):
                         [
                             sg.Radio('Elite Monsters', "RadioDemo", default=True, size=(10, 1), k='-R1-'),
                             sg.Radio('Normal Monsters', "RadioDemo", default=True, size=(15, 1), k='-R2-'),
+                            sg.Radio('World Dungeon', "RadioDemo", default=True, size=(15, 1), k='-R3-'),
                         ],
-                        [sg.Image(data=sg.DEFAULT_BASE64_ICON,  k='-IMAGE-')],
+                        #[sg.Image(data=sg.DEFAULT_BASE64_ICON,  k='-IMAGE-')],
                         [sg.Text('Elite Farm 1',size=(32,1)),
                          sg.Text('Position X',size=(7,1)),
                          sg.Text('Position Y',size=(7,1)),
@@ -460,7 +460,8 @@ def main():
                      'Output of event and values can be see in Output tab',
                      'The event and values dictionary is printed after every event')
         elif event == 'MAP1':
-            sg.popup('PySimpleGUI Demo All Elements','init.py',keep_on_top=True)
+            os.system('python3 init.py')
+            #sg.popup('PySimpleGUI Demo All Elements','init.py',keep_on_top=True)
         elif event == 'Run':
             print("[LOG] Clicked Popup Button!")
             checkEmulatorIsOpen("dnplayer.exe")

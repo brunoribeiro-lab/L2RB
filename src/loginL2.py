@@ -28,48 +28,60 @@ attempt = 0
 # 3. Selecionar cha de algum lugar dinamico
 # 4. Ainda da pra deixar mais rapido
 # 5. Adicionar Pan's Special Auto-Clear
-
+lauch = cv2.imread("Resources\lauch.png")
+lauch2 = cv2.imread("Resources\lauch2.png")
 def checkLogged():
     global logged
     return logged
 
 def loopLoggin():
-    global threadLogin
-    global now
-    global Try
+    global threadLogin, logged, Try, now
     if threadLogin != False and threadLogin.isAlive():
         threadLogin.cancel()
         thread = False
       
     threadLogin = threading.Timer(15.0, loopLoggin)
-    threadLogin.setName("TLOGIN")
+    threadLogin.daemon = True # stop if the program exits
     threadLogin.start()
     from .SummoningCircle import finishedSummoningCircle
     from .TempleGuardian import finishedTempleGuardian
+    from .Utils import emulators, currentEmulator
     if finishedSummoningCircle == 0 or finishedTempleGuardian == 0:
         return False
     
-    liveScreen()
-    if os.path.isfile('./now.png') == True:
-        now = cv2.imread("now.png")
-        if now is None:
-            Try+= 1
-            print("Current Screen not found #"+str(Try))
-            time.sleep(3) # skip to next thread execution
-            if Try >= 15 : 
-                Try = 0
-                logged = 0
-                restartL2()
+    if not process_exists(emulators[currentEmulator][0]):
+        print("Emulator not running, starting : " + emulators[currentEmulator][1])
+        logged = 0
+        try:
+            subprocess.Popen([emulators[currentEmulator][1],emulators[currentEmulator][2]])
+            time.sleep(10)
+        except WindowsError:
+            print("Cant Start " + emulators[currentEmulator][1])
+            # [Error 22] No application is associated with the specified
+            # file for this operation: '<URL>'
             return False
-        size = os.path.getsize("./now.png")
-        print("Size : " + str(size))
-        channels = now.shape[2]
-        if size < 200:
-            print("problem with current screen : " + str(size))
-            
-        assert not isinstance(now, type(None)), 'image not found'
-        Try = 0
-        doLogin()
+    else:
+        liveScreen()
+        if os.path.isfile('./now.png') == True:
+            now = cv2.imread("now.png")
+            if now is None:
+                Try+= 1
+                print("Current Screen not found #"+str(Try))
+                time.sleep(3) # skip to next thread execution
+                if Try >= 15 : 
+                    Try = 0
+                    logged = 0
+                    restartL2()
+                return False
+            size = os.path.getsize("./now.png")
+            print("Size : " + str(size))
+            channels = now.shape[2]
+            if size < 200:
+                print("problem with current screen : " + str(size))
+                
+            assert not isinstance(now, type(None)), 'image not found'
+            Try = 0
+            doLogin()
     #threadLogin.join()        
 
 # check playstore service has stopped and touch tap
@@ -100,18 +112,9 @@ def checkStopService():
 
 
 def doLogin():
-    global loggedStep, logged, threadLogin, executing, text, attempt
-    if executing == True:
-        print("Error check already logged")
-        attempt+=1
-        if attempt > 10:
-            print("KILL ThIS THREAD")
-            #threadLogin.cancel()
-            attempt = 0
-            #loopLoggin()
-        return False
-    
-    text = extractText()
+    global now, loggedStep, logged, threadLogin, executing, text, attempt
+    #text = extractText(now) # esse talvez seja o problema de high RAM
+    text = ''
     print("================== LOGIN THREAD ========================")
     if logged == 1:
         print("Characters already logged")
@@ -218,20 +221,11 @@ def closeBanners():
 
 
 def checkL2Crasher():
-    global logged
-    global loggedStep
-    current = cv2.imread("now.png")
-    if current is None:
-        print("Erro to get now in checking l2 crasher")
-        time.sleep(7) # skip to next thread execution
-        return False  
-    
+    global loggedStep, logged, now,lauch, lauch2
     print("Checking L2 Crashed")
-    lauch = cv2.imread("Resources\lauch.png")
-    lauch2 = cv2.imread("Resources\lauch2.png")
     #icon1 = find_matches(current, lauch)
-    icon2 = find_matches(current, lauch2)
-    positionsLauch = find_matches(current, lauch)
+    icon2 = find_matches(now, lauch2)
+    positionsLauch = find_matches(now, lauch)
     if checkExist("Resources\clock.png"):  # reward recess point, but I'm logged
         print("Character Logged Recess reward")
         loggedStep = 0
@@ -266,8 +260,7 @@ def checkL2Crasher():
         currentStep = 0
         logged = 0
         loggedStep = 1
-        touch(800,161);
-        del current
+        touch(800,161)
         del lauch
         time.sleep(2)
         return True
@@ -299,7 +292,7 @@ def checkL2Crasher():
             touch(x, y)
             return True
         else :
-            return False;
+            return False
     
     return False
 

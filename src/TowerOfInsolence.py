@@ -129,10 +129,10 @@ def step02():
         detectImMainScreen()
 
 def step03():
-    global currentStep
+    global currentStep,now
     liveScreen()
     time.sleep(4)
-    text = extractText()
+    text = extractText(now)
     #from .loginL2 import text  # extracted text
     print("TEXT Tower Of Insolence ")
     print(text)

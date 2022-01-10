@@ -22,7 +22,8 @@ from datetime import date, timedelta, datetime
 from dateutil.relativedelta import relativedelta
 opening = 0
 OCR = r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe'
-emulators = [['dnplayer.exe', r'C:\LDPlayer\LDPlayer4.0\dnplayer.exe'], ['Nox.exe', r'C:\Program Files (x86)\Nox\bin\Nox.exe']]
+pytesseract.pytesseract.tesseract_cmd = OCR
+emulators = [['dnplayer.exe', r'C:\LDPlayer\LDPlayer4.0\dnplayer.exe'], ['Nox.exe', r'C:\Program Files (x86)\nox\bin\Nox.exe','-clone:Nox_0']]
 currentEmulator = 1
 liveInExecution = 0
 invalid = 0
@@ -197,6 +198,10 @@ def kill():
             proc.kill()
             from src.loginL2 import logged
             logged = 0
+        elif proc.name() == 'Nox.exe':
+            proc.kill()
+            from src.loginL2 import logged
+            logged = 0
 
 
 def touch(x, y):
@@ -265,8 +270,10 @@ def restartL2():
     print("Restarting : " + str(emulators[currentEmulator][0]))
     if process_exists(emulators[currentEmulator][0]):
         kill()
-        time.sleep(2)
-    os.startfile(emulators[currentEmulator][1])
+        
+    print(emulators[currentEmulator][1])
+    #os.startfile(emulators[currentEmulator][1])
+    subprocess.Popen([emulators[currentEmulator][1],emulators[currentEmulator][2]])
     time.sleep(20)
 
 
@@ -298,11 +305,10 @@ def screenAliaisCAP(d):
     return stream
 
 
-def extractText():
-    if os.path.isfile('now.png') == False:
-        return False
-    pytesseract.pytesseract.tesseract_cmd = OCR
-    im = cv2.imread("now.png")  # Image.open("now.png")
+def extractText(im):
+    #if os.path.isfile('now.png') == False:
+    #    return False
+    #im = cv2.imread("now.png")  # Image.open("now.png")
     if im is None:
         return ''
     else:
@@ -495,7 +501,12 @@ def process_exists(processName):
                listOfProcessObjects.append(pinfo)
        except (psutil.NoSuchProcess, psutil.AccessDenied , psutil.ZombieProcess) :
            pass
-    return listOfProcessObjects;
+       
+    print(listOfProcessObjects)
+    if len(listOfProcessObjects) > 0 :
+        return True 
+    else:
+        return False
 
 
 def countPixelsInPosition(top, right, width, height, color, min, max, Print = False):
@@ -514,7 +525,46 @@ def countPixelsInPosition(top, right, width, height, color, min, max, Print = Fa
         return True
     else:
         return False
+def countPixelsInPosition_NOW(top, right, width, height, color, min, max, now, Print = False):
+    if now is None:
+        time.sleep(3)  # skip to next thread execution
+        return False
+    crop_img = now[top: (top + height), right: (right + width)]
+    imm = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
+    result = np.count_nonzero(np.all(imm == color, axis=2))
+    if Print :
+        print("Pixels : " + str(result))
+        
+    if result >= min and result <= max:
+        return True
+    else:
+        return False
 
+def checkExist_NOW(now, pic):
+    #from .loginL2 import now  # extracted text
+    if now is None:
+        print("Erro to get now in checking l2 crasher")
+        time.sleep(7) # skip to next thread execution
+        return False
+    find = cv2.imread(pic)
+    if find is None:
+        print("Erro ao ver se existe : " + pic)
+        time.sleep(7) # skip to next thread execution
+        return False
+    
+    assert not isinstance(find,type(None)), 'image not found'
+    try:
+        find.shape
+        found = findImage(now, find)
+        del find
+        if found:
+            return True
+        else:
+            return False
+    except AttributeError:
+        print("shape not found")  
+        return False
+    
 def findImageByPosition(top, right, width, height, now, pic2):  # pic1 is the original, while pic2 is the embedding
     pic1 = now[top : (top + height) , right: (right + width)]
     

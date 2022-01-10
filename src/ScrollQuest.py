@@ -7,11 +7,12 @@ import time
 from .Utils import restart
 from datetime import date, timedelta, datetime
 import numpy as np
+import os
 from .loginL2 import checkStopService, checkExist
 positionsCrop = [[277,9,220,50],[382,9,130,20],[348,244,5,5 ]] 
 positions = [[112,326],[119, 394],[110, 225]] # position to click in scroll quest, 0 is seconds position and 1 is third, 2 is first position
 position = 2 # current position
-scrollQuestIsDone = 1
+scrollQuestIsDone = 0
 finished = 0
 currentStep = 0  # step 0 = no runinng scroll, 1 = Select Scroll, 2 = Confirm Scroll, 3 = Start Scroll, 4 = walk, 5 = Doing, 6 = Claim
 inExecution = 0
@@ -32,8 +33,10 @@ def loopScrollQuest():
     # maybe this can get a great performace
     if thread != False and thread.isAlive():
         thread.cancel()
+        thread = False
         
     thread = threading.Timer(6.0, loopScrollQuest)
+    thread.daemon = True # stop if the program exits
     thread.start()
     doScrollQuest()
 
@@ -52,7 +55,9 @@ def doScrollQuest():
     
     if inExecution == 0:
         print("Daily Quest")
-        # liveScreen()
+        if os.path.isfile('./now.png') == False:
+            liveScreen()
+            time.sleep(5)
         now = datetime.now()
         print(str(now.strftime("%H:%M:%S")))
         inExecution = 1
@@ -319,7 +324,7 @@ def detectCurrentStep():
         time.sleep(1)  # wait to next screen
         liveScreen() # observar se da erro
         time.sleep(3)
-        newText = extractText()
+        newText = extractText(now)
         if newText.find('You need a Scroll') > 0:
             return runOrTeleport()
         elif newText.find('order to teleport') > 0:
