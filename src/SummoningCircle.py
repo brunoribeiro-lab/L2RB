@@ -21,7 +21,7 @@ thread = False
 jumps = 1
 jumpsC = 0
 now = False
-
+# tem um bug nessa porra, qndo ja fez, faz de novo e gasta reds -.-
 def loopSummoningCircle():
     global thread, jumpsC, jumps
     if thread != False and thread.isAlive():

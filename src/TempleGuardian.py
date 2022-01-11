@@ -25,6 +25,7 @@ thread = False
 jumps = 1
 jumpsC = 0
 now = False
+# tem um bug nessa porra, qndo ja fez, faz de novo e gasta reds -.-
 
 def loopTempleGuardian():
     global thread, jumpsC, jumps

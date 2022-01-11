@@ -31,6 +31,10 @@ Decks = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 die = cv2.imread("Resources\die.png")
 inventory = cv2.imread("Resources\Screenshot_20211221-151013.png")
 life = cv2.imread("Resources\monster00.png")
+store = cv2.imread("Resources\Screenshot_20220111-002625.png")
+mapOpened = cv2.imread("Resources\Screenshot_20220111-002625.png")
+mapOpened2 = cv2.imread("Resources\Screenshot_20220111-021906.png")
+worldDungeonScreen = cv2.imread("Resources\Screenshot_20220109-195401.png")
 now = False
 Try = 0
 waitToActiveBattleOn = False
@@ -39,6 +43,7 @@ def loopFarming():
     global thread
     if thread != False and thread.isAlive():
         thread.cancel()
+        del thread
         thread = False
 
     thread = threading.Timer(8.0, loopFarming)  # every 7 minutes
@@ -46,6 +51,9 @@ def loopFarming():
     thread.setName("Farming Thread")
     thread.start()
     doFarming()
+        
+    
+        
     # thread.join()
 
 
@@ -61,7 +69,7 @@ def doFarming():
 
     if not logged or not TowerOfInsolenceIsDone or not finishedTempleGuardian or not scrollQuestIsDone or not DailyDungeonIsDone or not EliteQuestIsDone or not finishedSummoningCircle:
         return False
-
+    print("****************** Farming THREAD ************************")
     global Try, now
     liveScreen()
     if os.path.isfile('now.png') == True:
@@ -84,6 +92,7 @@ def doFarming():
         Try = 0
         print("Farming")
         checkStep()
+    print("********************************************************")
 
 
 def checkStep():
@@ -94,10 +103,6 @@ def checkStep():
     global currentStep
     print("Farming in "+str(fieldOrElite) +
           " | Checking Steps : " + str(currentStep))
-    # I'm not farming go to spot
-    if currentStep != 5 and (fieldOrElite == 'WD' or fieldOrElite == 'elite'):
-        detectImInDungeon()
-
     if currentStep == 0:  # Main screen
         print("Step 0")
         step00()
@@ -113,6 +118,7 @@ def checkStep():
     elif currentStep == 4:  # Touch in Normal Dungeon
         print("Step 4")
         step04()
+        checkDie()
     elif currentStep == 5:  # Farming
         print("Step 5")
         checkDie()
@@ -142,7 +148,7 @@ def checkDie():
         backing = 0
         return True
     else:
-        detectImNotInDungeon()
+        #detectImNotInDungeon()
         # Yeah, I'm living
         if smarthDetectImFarming():  # melhorar isso aqui ta errado
             print("I'm farming right now")
@@ -192,8 +198,9 @@ def step03():
             if countPixelsInPosition_NOW(653, 1121, 70, 40, [194, 5, 1], 100, 1000, now, True):
                 print("insuficient proof blood, changing to Elite Farm")
                 touch(1240, 41)  # tap in Main screen
-                fieldOrElite = 'elite'  # change to elite
-                currentStep = 0
+                time.sleep(1)
+                fieldOrElite = 'field'  # change to elite
+                currentStep = 4 # just choice the spot
                 return True
             else:
                 touch(1013, 666)  # touch in Entry Request
@@ -201,13 +208,15 @@ def step03():
                 return True
         else:
             touch(1240, 41)  # I no have Idea, Main screen ?
-            currentStep = 0
+            time.sleep(1)
+            fieldOrElite = 'field'  # change to elite
+            currentStep = 4 # just choice the spot
 
 # step 4 go to spot
 def step04():
     global currentStep, fieldOrElite
     if fieldOrElite == "WD":
-        if detectImInWorldDungeon():
+        if ImWorldDungeon():
             print("Go to spot")
             currentStep = 5
             backToFarm()
@@ -215,6 +224,11 @@ def step04():
         else:
             print("Wait enter in Would Dungeon")
             return False
+    elif fieldOrElite == "field":
+         print("Go to spot")
+         currentStep = 5
+         backToFarm()
+         return True
     else:
         return False
 
@@ -395,20 +409,24 @@ def detectImNotInDungeon():
         currentStep = 0
 
 
-def detectImInDungeon():
+def ImWorldDungeon():
     global currentStep, now
     print("Detecting I'm in World Dungeon")
-    if countPixelsInPosition_NOW(137, 1102, 25, 40, [73, 78, 75], 1, 100, now):
+    # black ton
+    if detectMainScreen() and countPixelsInPosition_NOW(142, 1102, 21, 27, [14, 18, 23], 1, 100, now,True):
         print("I'm not World Dungeon")
-        currentStep = 0
-    elif countPixelsInPosition_NOW(137, 1102, 25, 40, [199, 199, 198], 1, 100, now):
+        return False
+    # gray ton    
+    elif detectMainScreen() and countPixelsInPosition_NOW(142, 1102, 21, 27, [178, 179, 80], 1, 100, now,True):
         print("I'm not in World Dungeon²")
-        currentStep = 0
+        return False
+    else:
+        return True
 
 def detectImInWorldDungeon():
-    if detectMainScreen() and countPixelsInPosition_NOW(137, 1102, 25, 40, [73, 78, 75], 1, 100, now):
+    if detectMainScreen() and countPixelsInPosition_NOW(137, 1102, 25, 40, [73, 78, 75], 1, 100, now,True):
         return False
-    elif detectMainScreen() and countPixelsInPosition_NOW(137, 1102, 25, 40, [199, 199, 198], 1, 100, now):
+    elif detectMainScreen() and countPixelsInPosition_NOW(137, 1102, 25, 40, [199, 199, 198], 1, 100, now,True):
         return False
     else:
         return True
@@ -440,7 +458,7 @@ def detectMainScreen():
 
 def detectCurrentStep():
     from .loginL2 import text  # extracted text
-    global now, currentStep
+    global now, currentStep, store, fieldOrElite, mapOpened,mapOpened2
     if countPixelsInPosition_NOW(500, 103, 45, 20, [210, 210, 210], 1, 30, now) and countPixelsInPosition_NOW(500, 277, 45, 45, [210, 210, 210], 1, 30, now):
         currentStep = 2
         return True
@@ -453,13 +471,38 @@ def detectCurrentStep():
     elif countPixelsInPosition_NOW(635, 451, 40, 50, [209, 209, 210], 1, 30, now) and countPixelsInPosition_NOW(655, 277, 45, 20, [209, 209, 210], 1, 30, now):
         currentStep = 1
         return True
-    elif currentStep != 0 and currentStep != 5 and detectInvalidStep():
+    elif currentStep == 5 and fieldOrElite == 'WD' and not ImWorldDungeon():
         currentStep = 0
         return True
-    elif detectImInWorldDungeon() and currentStep != 5:
+    elif (currentStep != 5) and fieldOrElite == 'WD' and ImWorldDungeon():
         currentStep = 5
         return True
+    elif currentStep != 0 and currentStep != 5 and currentStep != 4 and detectInvalidStep():
+        currentStep = 0
+        return True
     # check is store screen
+    elif findImage(now, store) :
+        print("Invalid Screen, Backing to Main Screen")
+        touch(1243, 38)
+        time.sleep(1)
+        currentStep = 0
+        return True
+    elif findImage(now, mapOpened) and currentStep != 4:
+        print("Invalid Screen, MAP, Backing to Main Screen")
+        touch(1243, 38)
+        time.sleep(1)
+        currentStep = 0
+        return True
+    elif findImage(now, mapOpened2) and currentStep != 4:
+        print("Invalid Screen, MAP, Backing to Main Screen")
+        touch(1068, 57)
+        time.sleep(1)
+        currentStep = 0
+        return True
+    elif findImage(now, worldDungeonScreen) and currentStep != 3:
+        print("Invalid Screen, World Dungeon, Backing to Main Screen")
+        currentStep = 3
+        return True
     else:
         return False
 

@@ -511,7 +511,7 @@ def process_exists(processName):
 
 def countPixelsInPosition(top, right, width, height, color, min, max, Print = False):
     from .loginL2 import now  # now
-    if now is None:
+    if now is None or now is bool:
         time.sleep(3)  # skip to next thread execution
         return False
 
