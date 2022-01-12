@@ -12,7 +12,7 @@ from .loginL2 import checkStopService, checkExist
 positionsCrop = [[277,9,220,50],[382,9,130,20],[348,244,5,5 ]] 
 positions = [[112,326],[119, 394],[110, 225]] # position to click in scroll quest, 0 is seconds position and 1 is third, 2 is first position
 position = 2 # current position
-scrollQuestIsDone = 1
+scrollQuestIsDone = 0
 finished = 0
 currentStep = 0  # step 0 = no runinng scroll, 1 = Select Scroll, 2 = Confirm Scroll, 3 = Start Scroll, 4 = walk, 5 = Doing, 6 = Claim
 inExecution = 0

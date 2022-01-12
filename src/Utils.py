@@ -29,6 +29,10 @@ liveInExecution = 0
 invalid = 0
 
 def findImage(pic1, pic2):  # pic1 is the original, while pic2 is the embedding
+    if pic1 is None:
+        time.sleep(2) # skip to next thread execution
+        return False
+    
     dim1_ori = pic1.shape[0]
     dim2_ori = pic1.shape[1]
 
@@ -86,9 +90,17 @@ def _find_matches(haystack, needle):
     myThread.join()
 
 
-def find_matches(haystack, needle):
-    # print(haystack)
-    # print(needle)
+def find_matches(haystack, needle, threshold = 0.8):
+    # OLHA ISSO DOUGLASSSS
+    res = cv2.matchTemplate(haystack, needle, cv2.TM_CCOEFF_NORMED)
+    loc = np.where( res >= threshold)
+    for pt in zip(*loc[::-1]):
+        print(pt[0])
+        print(pt[1])
+        return [(pt[0],pt[1])] # get the first match result
+        
+    return []
+    # CONSUMINDO MT CPU e RAM abaixo
     try:
         arr_h = np.asarray(haystack)
         try:
@@ -123,7 +135,8 @@ def find_matches(haystack, needle):
             arr_s = arr_h[ymin:ymax, xmin:xmax]     # Extract subimage
             arr_t = (arr_s == arr_n)                # Create test matrix
             if arr_t.all():                         # Only consider exact matches
-                matches.append((xmin, ymin))
+                #matches.append((xmin, ymin))
+                return [(xmin,ymin)]
 
     return matches
 
@@ -378,7 +391,6 @@ def liveScreen():
             try:
                 d = adb.device()
                 exist = d.shell('echo "Hello world" > /sdcard/now.png')
-                print(exist)
                 d.shell("rm /sdcard/now.png")
                 stream = d.shell("screencap /sdcard/now.png", stream=True)
                 time.sleep(1)
@@ -502,7 +514,6 @@ def process_exists(processName):
        except (psutil.NoSuchProcess, psutil.AccessDenied , psutil.ZombieProcess) :
            pass
        
-    print(listOfProcessObjects)
     if len(listOfProcessObjects) > 0 :
         return True 
     else:

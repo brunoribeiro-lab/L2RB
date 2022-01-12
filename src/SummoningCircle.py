@@ -14,6 +14,7 @@ closeDialog = cv2.imread("Resources\summoningCircle.png")
 summoningCircle2 = cv2.imread("Resources\Screenshot_20220101-141049.png")
 dungeon = cv2.imread("Resources\Screenshot_20220101-143001.png")
 dungeon2 = cv2.imread("Resources\Screenshot_20220101-150154.png")
+store = cv2.imread("Resources\Screenshot_20220111-002625.png")
 finishedSummoningCircle = 1
 currentStepSummoningCircle = 0
 inExecution = False
@@ -189,7 +190,7 @@ def step05():
 
 def detectCurrentStep():
     from .loginL2 import text  # extracted text
-    global dungeon1,limitBreak, now, currentStepSummoningCircle, summoningCircle2, dungeon, dungeon2
+    global dungeon1,limitBreak, now, currentStepSummoningCircle,store, summoningCircle2, dungeon, dungeon2
     if findImage(now, dungeon1) : # I'm Normal Dungeon ?
         currentStepSummoningCircle = 3
         return True
@@ -220,6 +221,12 @@ def detectCurrentStep():
         return True
     elif currentStepSummoningCircle != 0 and currentStepSummoningCircle != 5 and detectInvalidStep():
         currentStepSummoningCircle = 0  
+        return True
+    elif findImage(now, store) :
+        print("Invalid Screen, Backing to Main Screen")
+        touch(1243, 38)
+        time.sleep(1)
+        currentStep = 0
         return True
     else:
         return False

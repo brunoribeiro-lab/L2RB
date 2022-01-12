@@ -1,4 +1,4 @@
-from .Utils import liveScreen, restartL2, touch, countPixelsInPosition, emulators, currentEmulator
+from .Utils import liveScreen, restartL2, touch,countPixelsInPosition_NOW, countPixelsInPosition, emulators, currentEmulator
 from .Utils import findImage
 from .Utils import find_matches
 from .Utils import restart
@@ -13,6 +13,7 @@ import numpy as np
 import os
 import time
 import re
+from datetime import date, timedelta, datetime
 logged = 1
 loggedStep = 0
 threadLogin = False
@@ -30,25 +31,39 @@ attempt = 0
 # 5. Adicionar Pan's Special Auto-Clear
 lauch = cv2.imread("Resources\lauch.png")
 lauch2 = cv2.imread("Resources\lauch2.png")
+banner_find = cv2.imread("Resources\closeBanner1.png")
+banner_find2 = cv2.imread("Resources\closeBanner2.png")
+crashed = cv2.imread("Resources\crasher.png")
+pot1 = cv2.imread("Resources\pot.png")
+pot2 = cv2.imread("Resources\pot2.png")
+pot3 = cv2.imread("Resources\pot3.png")
+pot4 = cv2.imread("Resources\pot4.png")
+pot5 = cv2.imread("Resources\pot5.png")
+pot6 = cv2.imread("Resources\pot6.png")
+offline1 = cv2.imread("Resources\clock.png")
+loaded = cv2.imread("Resources\loaded.png")
+lastConfirmedLogged = datetime.now()
+
+# find icon positions and save in RAM
+iconPositionX= False
+iconPositionY = False
+
+jumps = 3
+jumpsC = 0
 def checkLogged():
     global logged
     return logged
 
 def loopLoggin():
-    global threadLogin, logged, Try, now
+    global threadLogin, logged, Try, now, jumpsC , jumpsC
     if threadLogin != False and threadLogin.isAlive():
         threadLogin.cancel()
-        thread = False
+        del threadLogin
+        threadLogin = False
       
-    threadLogin = threading.Timer(15.0, loopLoggin)
+    threadLogin = threading.Timer(8.0, loopLoggin)
     threadLogin.daemon = True # stop if the program exits
     threadLogin.start()
-    from .SummoningCircle import finishedSummoningCircle
-    from .TempleGuardian import finishedTempleGuardian
-    from .Utils import emulators, currentEmulator
-    if finishedSummoningCircle == 0 or finishedTempleGuardian == 0:
-        return False
-    
     if not process_exists(emulators[currentEmulator][0]):
         print("Emulator not running, starting : " + emulators[currentEmulator][1])
         logged = 0
@@ -75,7 +90,7 @@ def loopLoggin():
                 return False
             size = os.path.getsize("./now.png")
             print("Size : " + str(size))
-            channels = now.shape[2]
+            #channels = now.shape[2] resolution
             if size < 200:
                 print("problem with current screen : " + str(size))
                 
@@ -113,9 +128,10 @@ def checkStopService():
 
 def doLogin():
     global now, loggedStep, logged, threadLogin, executing, text, attempt
-    #text = ''
     print("================== LOGIN THREAD ========================")
-    text = extractText(now) # esse talvez seja o problema de high RAM
+    #del text
+    text = ''
+    #text = extractText(now) # esse talvez seja o problema de high RAM
     checkisLogged()  # necessario para que o L2 feche por algum motivo
     if logged == 0:
         checkSteps()
@@ -125,6 +141,7 @@ def doLogin():
 
 def checkSteps():
     global loggedStep, executing, now, attempt
+    detectCurrentStep()
     if loggedStep == 0:  # Emulator not runing
         listOfProcessIds = process_exists(emulators[currentEmulator][0])
         running = False
@@ -156,19 +173,49 @@ def checkSteps():
     else:
         return False
 
-
+def detectCurrentStep():
+    global loggedStep, banner_find, banner_find2, now, text, logged,lastConfirmedLogged
+    positions = find_matches(now, banner_find)
+    if len(positions) > 0:
+        print("Closing banner")
+        x = positions[0][0]
+        y = positions[0][1]
+        loggedStep = 3  # step waiting for login
+        logged = 0
+        touch(x, y)  # touch in close banner button
+        return True
+    
+    positions2 = find_matches(now, banner_find2)
+    if len(positions2) > 0:
+        print("Closing banner 2")
+        x = positions2[0][0]
+        y = positions2[0][1]
+        loggedStep = 3  # step waiting for login
+        logged = 0
+        touch(x, y)  # touch in close banner button
+        return True
+    
+    if text.find('Character Name') > 0:
+        print("Tap in Log In 1")
+        loggedStep = 3  # step waiting for login
+        touch(1025, 285)  # touch in Login in with first character on list
+        return True
+    
+    if text.find('Character') > 0:
+        print("Tap in Log In 2")
+        loggedStep = 3  # step waiting for login
+        touch(1025, 285)  # touch in Login in with first character on list
+        return True
+    
 def closeBanners():
-    global loggedStep
-    global now
-    global text
+    global loggedStep, banner_find, banner_find2, now, text
     if now is None:
         print("Erro to get now in checking l2 crasher")
         time.sleep(7) # skip to next thread execution
         return False
-    find = cv2.imread("Resources\closeBanner1.png")
-    find2 = cv2.imread("Resources\closeBanner2.png")
-    positions = find_matches(now, find)
-    positions2 = find_matches(now, find2)
+    
+    positions = find_matches(now, banner_find)
+    print(positions)
     if len(positions) > 0:
         print("Closing banner")
         x = positions[0][0]
@@ -176,7 +223,9 @@ def closeBanners():
         loggedStep = 3  # step waiting for login
         touch(x, y)  # touch in close banner button
         return True
-    elif len(positions2) > 0:
+    
+    positions2 = find_matches(now, banner_find2)
+    if len(positions2) > 0:
         print("Closing banner 2")
         x = positions2[0][0]
         y = positions2[0][1]
@@ -207,53 +256,47 @@ def closeBanners():
 
 
 def checkL2Crasher():
-    global loggedStep, logged, now,lauch, lauch2
+    global loggedStep, logged, now,lauch, lauch2, iconPositionX, iconPositionY, crashed
     print("Checking L2 Crashed")
-    #icon1 = find_matches(current, lauch)    
-    """if checkExist("Resources\clock.png"):  # reward recess point, but I'm logged
-        print("Character Logged Recess reward")
-        loggedStep = 0
-        logged = 1
-        touch(571, 601) # touch in claim reward, but can implement a select choice reward
-        return True;"""
+    #icon1 = find_matches(current, lauch)   
     positionsLauch = find_matches(now, lauch)
     if len(positionsLauch) > 0:
         print("Lineage crasher 1")
-        from .EliteQuest import currentStep  # extracted text
-        currentStep = 0
-        print("Opening ...")
         logged = 0
-        x = positionsLauch[0][0]
-        y = positionsLauch[0][1]
+        # save position just once
+        iconPositionX = positionsLauch[0][0]
+        iconPositionY = positionsLauch[0][1]
         loggedStep = 2  # step waiting for login
-        touch(x, y)
-        return True
-    
-    icon2 = find_matches(now, lauch2)
-    if len(icon2) > 0:
-        print("Lineage crasher 1")
-        from .EliteQuest import currentStep  # extracted text
-        currentStep = 0
         print("Opening ...")
-        logged = 0
-        x = icon2[0][0]
-        y = icon2[0][1]
-        loggedStep = 2  # step waiting for login
-        touch(x, y)
-        del icon2
+        touch(iconPositionX, iconPositionY)
         return True
-    elif checkExist("Resources\crasher.png"):
+    return False  
+
+    if not iconPositionX or not iconPositionX:
+        positionsLauch = find_matches(now, lauch)
+        if len(positionsLauch) > 0:
+            print("Lineage crasher 1")
+            logged = 0
+            # save position just once
+            iconPositionX = positionsLauch[0][0]
+            iconPositionY = positionsLauch[0][1]
+            loggedStep = 2  # step waiting for login
+            print("Opening ...")
+            touch(iconPositionX, iconPositionY)
+            return True
+    elif findImage(now, lauch) :
+        loggedStep = 2  # step waiting for login
+        touch(iconPositionX, iconPositionY)
+        return True
+    elif findImage(now, crashed):
         print("Lineage crasher")
-        from .EliteQuest import currentStep  # extracted text
-        currentStep = 0
         logged = 0
         loggedStep = 1
         touch(800,161)
-        del lauch
         time.sleep(2)
         return True
-    
-    return False
+    else:
+        return False
 
 
 def detectMimeDate():
@@ -262,132 +305,96 @@ def detectMimeDate():
     return True
 
 def checkisLogged():
-    global logged, loggedStep, text
+    global logged, loggedStep, text, now, lastConfirmedLogged,offline1, pot1, pot2, pot3, pot4,pot5, pot6
     print("Checking is logged")
-    if checkExist("Resources\pot.png"): # todo check pot 100
+    now_plus_15 = lastConfirmedLogged + timedelta(0, 15 * 60)
+    
+    if checkL2Crasher():
+        return True
+    
+    if findImage(now,pot1): # todo check pot 100
         print("Character Logged 1")
         loggedStep = 0
         logged = 1
-        return True;
-    elif checkExist("Resources\pot2.png"): # todo check pot 100
+        lastConfirmedLogged = datetime.now()
+        return True
+    if findImage(now,pot2): # todo check pot 100
         print("Character Logged 2")
         loggedStep = 0
         logged = 1
-        return True;
-    elif checkExist('Resources\clock.png'):  # reward recess point
+        lastConfirmedLogged = datetime.now()
+        return True
+    if findImage(now,offline1):  # reward recess point
         print("Recess reward")
         loggedStep = 0
         logged = 1
+        lastConfirmedLogged = datetime.now()
         touch(571, 601) # touch in claim reward, but can implement a select choice reward
         time.sleep(2)
         touch(639, 473) # touch in ok in case total points is 0
         time.sleep(3)
         touch(1104, 116) # touch in claim reward, but can implement a select choice reward
-        return True;
-    elif checkExist("Resources\pot3.png"):  # offline mode
+        return True
+    if findImage(now,pot3):  # offline mode
         print("Character Logged 3")
         loggedStep = 0
         logged = 1
+        lastConfirmedLogged = datetime.now()
         #touch(800, 735)
         #time.sleep(3)
         #touch(571, 601) # touch in claim reward, but can implement a select choice reward
-        return True;
-    elif checkExist("Resources\pot4.png"):  # offline mode
+        return True
+    if findImage(now,pot4):  # offline mode
         print("Character Logged 4")
         loggedStep = 0
         logged = 1
+        lastConfirmedLogged = datetime.now()
         #touch(800, 735)
         #time.sleep(3)
         #touch(571, 601) # touch in claim reward, but can implement a select choice reward
         #time.sleep(3)
         #touch(1102, 115)
-        return True;
-    elif checkExist("Resources\pot5.png"):  # offline mode
+        return True
+    if findImage(now,pot5):  # offline mode
         print("Character Logged 5")
         loggedStep = 0
         logged = 1
+        lastConfirmedLogged = datetime.now()
         #touch(800, 735)
         #time.sleep(3)
         #touch(571, 601) # touch in claim reward, but can implement a select choice reward
         #time.sleep(3)
         #touch(1102, 115)
-        return True;
-    elif checkExist("Resources\pot6.png"):  # offline mode
+        return True
+    if findImage(now,pot6):  # offline mode
         print("Character Logged 6")
         loggedStep = 0
         logged = 1
+        lastConfirmedLogged = datetime.now()
        # touch(800, 735)
         #time.sleep(3)
         #touch(571, 601) # touch in claim reward, but can implement a select choice reward
         #time.sleep(3)
         #touch(1102, 115)
-        return True;
-    else:
-        checkL2Crasher()
-        return False;
+        return True
+    if datetime.timestamp(datetime.now()) >= datetime.timestamp(now_plus_15):
+        print("something went wrong, restarting Lineage")
+        restartL2()
+        logged = 0
+        loggedStep = 0
+        lastConfirmedLogged = datetime.now()
+        return False
 
 # Detect is Ready To login
 def findMyChar():
     # talvez precise add os passos atuais nos outros
-    global loggedStep
-    global text
+    global loggedStep, text
     if smartDetectLoginAvaiable():
         print("Ready to login 0")
         tapInLogin()  # touch in Find my Character
         return False
-    elif text.find('LV') > 0:
-        print("Ready to login 2")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('Tap') > 0 or text.find('TAP') > 0 or text.find('START') > 0:
-        print("Ready to login 3")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('Aden Castle Owner') > 0:
-        print("Ready to login 3")
-        tapInLogin()  # touch in Find my Character
-        loggedStep = 2
-        return False
-    elif text.find('Aden Castle') > 0:
-        print("Ready to login 4")
-        loggedStep = 2
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('Lamael') > 0:
-        print("Ready to login 5")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('Lancer') > 0:
-        print("Ready to login 6")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('Aria') > 0:
-        print("Ready to login 7")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('Castle of') > 0:
-        print("Ready to login 8")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('Castle of Darkness') > 0:
-        print("Ready to login 9")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('Character Name') > 0:
-        print("Tap in Log In 1")
-        loggedStep = 3  # step waiting for login
-        touch(1025, 285)  # touch in Login in with first character on list
-        return True
-    elif text.find('Character') > 0:
-        print("Tap in Log In 2")
-        loggedStep = 3  # step waiting for login
-        touch(1025, 285)  # touch in Login in with first character on list
-        return True
-    elif text.find('Checking if any files were patched') > 0:
-        loggedStep = 3  # step waiting for login
-        return True
     # se eu add algo que encontra a cor fica mt mais rapido
-    elif checkExist("Resources\loaded.png"):
+    elif findImage(now, loaded):
         print("Tap in Log In 3")
         loggedStep = 3  # step waiting for login
         touch(1025, 285)  # touch in Login in with first character on list
@@ -450,72 +457,12 @@ def tapInLogin():
     touch(760, 608)  # touch in Find my Character
 
 def checkL2isOpen():
-    global loggedStep
-    global now
-    lauch = cv2.imread("Resources\lauch.png")
-    current = cv2.imread("now.png")
-    if current is None:
-        print("Eita poHa Die")
-        time.sleep(7) # skip to next thread execution
-        return False
-    
-    positions = find_matches(current, lauch)
-    print(text)
-    if len(positions) > 0:
-        print("Opening ....")
-        x = positions[0][0]
-        y = positions[0][1]
-        loggedStep = 2  # step waiting for login
-        touch(x, y)
-    elif smartDetectLoginAvaiable() :
+    global loggedStep, text, now, loaded
+    if smartDetectLoginAvaiable() :
         print("Ready to login 0")
         tapInLogin()  # touch in Find my Character
         return False
-    elif text.find('Tap') > 0:
-        print("Ready to login")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('TAP') > 0:
-        print("Ready to login")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('START') > 0:
-        print("Ready to login")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('Aden Castle Owner') > 0:
-        print("Ready to login")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('Aden Castle') > 0:
-        print("Ready to login")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('Lamael') > 0:
-        print("Ready to login")
-        touch(788, 501)  # touch in Find my Character
-        return False
-    elif text.find('Lancer') > 0:
-        print("Ready to login")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('Aria') > 0:
-        print("Ready to login")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('Castle of Darkness') > 0:
-        print("Ready to login")
-        tapInLogin()  # touch in Find my Character
-        return False
-    elif text.find('Character Name') > 0:
-        loggedStep = 3  # step waiting for login
-        touch(1025, 285)  # touch in Login in with first character on list
-        return True
-    elif text.find('Character') > 0:
-        loggedStep = 3  # step waiting for login
-        touch(1025, 285)  # touch in Login in with first character on list
-        return True
-    elif checkExist("Resources\loaded.png"):
+    elif findImage(now, loaded):
         loggedStep = 3  # step waiting for login
         touch(1025, 285)  # touch in Login in with first character on list
         return True
@@ -528,7 +475,9 @@ def openL2():
     os.startfile(emulators[currentEmulator][1])
     
 def smartDetectLoginAvaiable():
-    if countPixelsInPosition(583,645,300,60,[86, 114, 157], 80, 100):
+    global now
+    print("Detecting Login Screen are avaiable")
+    if countPixelsInPosition_NOW(583,645,280,60,[255, 255, 255], 1000, 2000, now, True):
         return True
     else:
         return False 
