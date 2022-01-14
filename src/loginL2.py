@@ -1,4 +1,4 @@
-from .Utils import liveScreen, restartL2, touch,countPixelsInPosition_NOW, countPixelsInPosition, emulators, currentEmulator
+from .Utils import liveScreen,killL2Process, restartL2, touch,countPixelsInPosition_NOW, countPixelsInPosition, emulators, currentEmulator
 from .Utils import findImage
 from .Utils import find_matches
 from .Utils import restart
@@ -43,6 +43,7 @@ pot6 = cv2.imread("Resources\pot6.png")
 offline1 = cv2.imread("Resources\clock.png")
 loaded = cv2.imread("Resources\loaded.png")
 lastConfirmedLogged = datetime.now()
+lastStep2Invalid = False # prevent long time (probability frozen)
 
 # find icon positions and save in RAM
 iconPositionX= False
@@ -127,11 +128,10 @@ def checkStopService():
 
 
 def doLogin():
-    global now, loggedStep, logged, threadLogin, executing, text, attempt
+    global now, text, loggedStep, logged, threadLogin, executing, text, attempt
     print("================== LOGIN THREAD ========================")
-    #del text
-    text = ''
-    #text = extractText(now) # esse talvez seja o problema de high RAM
+    #text = ''
+    text = extractText(now) # esse talvez seja o problema de high RAM
     checkisLogged()  # necessario para que o L2 feche por algum motivo
     if logged == 0:
         checkSteps()
@@ -165,6 +165,7 @@ def checkSteps():
         checkL2isOpen()
     elif loggedStep == 2:  # Check l2 is rdy to login in
         print("Login Step 2")
+        # seria interessante ter um limite de 1m, se n mostrar fecha apenas o l2 e abre de novo
         #closeBanners() # detect babbers
         findMyChar()
     elif loggedStep == 3:  # Closing Banners
@@ -256,8 +257,17 @@ def closeBanners():
 
 
 def checkL2Crasher():
-    global loggedStep, logged, now,lauch, lauch2, iconPositionX, iconPositionY, crashed
+    global loggedStep, lastStep2Invalid, text, logged, now,lauch,\
+            lauch2, iconPositionX, iconPositionY, crashed, pot3, pot4
     print("Checking L2 Crashed")
+    
+    if (text.find("You have been disconnected") > 0 or text.find("been disconnected") > 0) and (findImage(now,pot3) or findImage(now,pot4)) :    
+        logged = 0
+        loggedStep = 0
+        print("You have disconnected, restarting Lineage")
+        #killL2Process()
+        return True
+         
     #icon1 = find_matches(current, lauch)   
     positionsLauch = find_matches(now, lauch)
     if len(positionsLauch) > 0:
@@ -266,10 +276,20 @@ def checkL2Crasher():
         # save position just once
         iconPositionX = positionsLauch[0][0]
         iconPositionY = positionsLauch[0][1]
+        lastStep2Invalid = datetime.now()
         loggedStep = 2  # step waiting for login
         print("Opening ...")
         touch(iconPositionX, iconPositionY)
         return True
+    
+    if findImage(now, crashed):
+        print("Lineage crasher")
+        logged = 0
+        loggedStep = 1
+        touch(800,161)
+        time.sleep(2)
+        return True
+    
     return False  
 
     if not iconPositionX or not iconPositionX:
@@ -305,13 +325,23 @@ def detectMimeDate():
     return True
 
 def checkisLogged():
-    global logged, loggedStep, text, now, lastConfirmedLogged,offline1, pot1, pot2, pot3, pot4,pot5, pot6
+    global logged, loggedStep, lastStep2Invalid, text, now, lastConfirmedLogged,offline1, pot1, pot2, pot3, pot4,pot5, pot6
     print("Checking is logged")
     now_plus_15 = lastConfirmedLogged + timedelta(0, 15 * 60)
     
     if checkL2Crasher():
         return True
-    
+        
+    if lastStep2Invalid != False and loggedStep == 2 and datetime.timestamp(datetime.now()) >= datetime.timestamp(lastStep2Invalid + timedelta(0, 1 * 60)): 
+        print("You emulator probability frozenm restart lineage")
+        logged = 0
+        loggedStep = 0
+        lastStep2Invalid = False
+        killL2Process()
+        
+    if lastStep2Invalid != False and logged != 2 :
+        lastStep2Invalid = False
+        
     if findImage(now,pot1): # todo check pot 100
         print("Character Logged 1")
         loggedStep = 0

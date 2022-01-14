@@ -23,10 +23,12 @@ from dateutil.relativedelta import relativedelta
 opening = 0
 OCR = r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe'
 pytesseract.pytesseract.tesseract_cmd = OCR
-emulators = [['dnplayer.exe', r'C:\LDPlayer\LDPlayer4.0\dnplayer.exe'], ['Nox.exe', r'C:\Program Files (x86)\nox\bin\Nox.exe','-clone:Nox_0']]
+emulators = [['dnplayer.exe', r'C:\LDPlayer\LDPlayer4.0\dnplayer.exe',''], ['Nox.exe', r'C:\Program Files (x86)\nox\bin\Nox.exe','-clone:Nox_0']]
 currentEmulator = 1
 liveInExecution = 0
 invalid = 0
+l2packet = "com.netmarble.lin2ws"
+lastRestartingEmulator = False
 
 def findImage(pic1, pic2):  # pic1 is the original, while pic2 is the embedding
     if pic1 is None:
@@ -280,14 +282,16 @@ def readb64(base64_string):
 
 
 def restartL2():
-    print("Restarting : " + str(emulators[currentEmulator][0]))
-    if process_exists(emulators[currentEmulator][0]):
-        kill()
+    global lastRestartingEmulator
+    # wait 3 minutes to finish emulator load
+    if not lastRestartingEmulator or (datetime.timestamp(datetime.now()) >= datetime.timestamp(lastRestartingEmulator + timedelta(0, 3 * 60))): 
+        print("Restarting : " + str(emulators[currentEmulator][0]))
+        if process_exists(emulators[currentEmulator][0]):
+            kill()
         
-    print(emulators[currentEmulator][1])
-    #os.startfile(emulators[currentEmulator][1])
-    subprocess.Popen([emulators[currentEmulator][1],emulators[currentEmulator][2]])
-    time.sleep(20)
+        lastRestartingEmulator = datetime.now()
+        #os.startfile(emulators[currentEmulator][1])
+        subprocess.Popen([emulators[currentEmulator][1],emulators[currentEmulator][2]])
 
 
 async def _save_screenshot(device):
@@ -332,7 +336,7 @@ def extractText(im):
         except RuntimeError as timeout_error:
             return ''
 
-
+# falta deixar igual o outro
 def extractTextFromResize(top, right, width, height):
     if os.path.isfile('now.png') == False:
         return False
@@ -497,7 +501,19 @@ def checkL2isOpen():
     else:
         print("L2 Runing")
 
-
+def killL2Process():
+    global l2packet
+    adb = adbutils.AdbClient(host="127.0.0.1", port=5037)
+    try:
+        print("Closing L2")
+        d = adb.device()
+        d.shell("am force-stop " + l2packet)
+        return True
+    except IOError:
+        print("Device not found, restarting....")
+        restartL2()
+        return False
+    
 def process_exists(processName):
     '''
     Get a list of all the PIDs of a all the running process whose name contains
@@ -510,11 +526,12 @@ def process_exists(processName):
            pinfo = proc.as_dict(attrs=['pid', 'name', 'create_time'])
            # Check if process name contains the given name string.
            if processName.lower() in pinfo['name'].lower() :
-               listOfProcessObjects.append(pinfo)
+               if pinfo is not bool:
+                listOfProcessObjects.append(pinfo)
        except (psutil.NoSuchProcess, psutil.AccessDenied , psutil.ZombieProcess) :
            pass
        
-    if len(listOfProcessObjects) > 0 :
+    if listOfProcessObjects != False and len(listOfProcessObjects) > 0:
         return True 
     else:
         return False
