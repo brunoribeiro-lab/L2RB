@@ -30,7 +30,6 @@ def loopSummoningCircle():
             thread.cancel()
             thread = False
             jumpsC = 0
-            print("Stop Thread : Sumonning Circle")
         else:
             jumpsC += 1
         

@@ -23,7 +23,7 @@ from dateutil.relativedelta import relativedelta
 opening = 0
 OCR = r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe'
 pytesseract.pytesseract.tesseract_cmd = OCR
-emulators = [['dnplayer.exe', r'C:\LDPlayer\LDPlayer4.0\dnplayer.exe',''], ['Nox.exe', r'C:\Program Files (x86)\nox\bin\Nox.exe','-clone:Nox_0']]
+emulators = [['dnplayer.exe', r'C:\LDPlayer\LDPlayer4.0\dnplayer.exe',''], ['Nox.exe', r'C:\Program Files\Nox\bin\Nox.exe','-clone:Nox_0']]
 currentEmulator = 1
 liveInExecution = 0
 invalid = 0
@@ -284,7 +284,7 @@ def readb64(base64_string):
 def restartL2():
     global lastRestartingEmulator
     # wait 3 minutes to finish emulator load
-    if not lastRestartingEmulator or (datetime.timestamp(datetime.now()) >= datetime.timestamp(lastRestartingEmulator + timedelta(0, 3 * 60))): 
+    if lastRestartingEmulator == False or (datetime.timestamp(datetime.now()) >= datetime.timestamp(lastRestartingEmulator + timedelta(0, 3 * 60))): 
         print("Restarting : " + str(emulators[currentEmulator][0]))
         if process_exists(emulators[currentEmulator][0]):
             kill()
@@ -292,6 +292,8 @@ def restartL2():
         lastRestartingEmulator = datetime.now()
         #os.startfile(emulators[currentEmulator][1])
         subprocess.Popen([emulators[currentEmulator][1],emulators[currentEmulator][2]])
+    else:
+        print("Waiting Emulator start")
 
 
 async def _save_screenshot(device):
@@ -409,7 +411,12 @@ def liveScreen():
                         os.remove("now.png")
                     except IOError:
                         print("File not exist")
-                d.sync.pull("/sdcard/now.png", "now.png")  # pulling image
+                    
+                try:
+                    d.sync.pull("/sdcard/now.png", "now.png")  # pulling image
+                except IOError:
+                    print("Erro download now.png")
+                        
                 time.sleep(1)
                 # time.sleep(2)
                 exists = os.path.isfile('./now.png')
@@ -417,8 +424,9 @@ def liveScreen():
                 liveInExecution = 0
                 if exists == False:
                     del exists
+                    print("File no exist")
                     invalid = 0
-                    restartL2()
+                    #restartL2()
                 else:
                     del exists
                     size = os.path.getsize("now.png")
@@ -531,7 +539,7 @@ def process_exists(processName):
        except (psutil.NoSuchProcess, psutil.AccessDenied , psutil.ZombieProcess) :
            pass
        
-    if listOfProcessObjects != False and len(listOfProcessObjects) > 0:
+    if listOfProcessObjects != True and len(listOfProcessObjects) > 0:
         return True 
     else:
         return False

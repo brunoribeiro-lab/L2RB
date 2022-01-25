@@ -27,6 +27,7 @@ import subprocess
 from ppadb.client import Client as AdbClient
 import time
 import cv2
+import time
 import numpy as np
 from src.TowerOfInsolence import loopTowerOfInsolence
 from src.HallOfGreed import loopHallOfGreed
@@ -182,21 +183,24 @@ def connectADB():
     #print(serial)
     
 
-def checkEmulatorIsOpen(name):
+def checkEmulatorIsOpen():
     if os.path.isfile('./now.png') : 
         try:
             os.remove("now.png")
         except IOError:
             print("File not exist")
             
-    loopLoggin()
     loopSummoningCircle()
     #loopDailyDungeon() # DONE
     #loopTowerOfInsolence()  # DONE
     loopTempleGuardian() # DONE
     #loopEliteQuest()
-    loopScrollQuest() #
-    loopFarming()
+    while True:
+        loopLoggin()
+        loopScrollQuest()
+        loopFarming()
+        time.sleep(1) # maybe not necessary
+    
 
 
 def get_img_data(f, maxsize=(1200, 850), first=False):
@@ -430,7 +434,7 @@ def main():
     try:
         if sys.argv[1] == '-a':
             autoload = True
-            checkEmulatorIsOpen("dnplayer.exe")
+            checkEmulatorIsOpen()
     except IndexError:
         autoload = False
         
@@ -464,7 +468,9 @@ def main():
             #sg.popup('PySimpleGUI Demo All Elements','init.py',keep_on_top=True)
         elif event == 'Run':
             print("[LOG] Clicked Popup Button!")
-            checkEmulatorIsOpen("dnplayer.exe")
+            thread = threading.Thread(target=checkEmulatorIsOpen)
+            thread.start()
+            #checkEmulatorIsOpen()
             print("[LOG] Dismissing Popup!")
         elif event == 'Stop':
             print("[LOG] Pausando BOT")

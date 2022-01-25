@@ -14,7 +14,7 @@ elite = 0
 blackWindowsError = False
 # spot Elite, x, y ( 0 in spot elite is like normal field)
 spotLocation = [[32, 527, 206], [32, 510, 256]]
-spotFieldLocation = [[488, 295], [493, 203]]
+spotFieldLocation = [[444, 632], [405, 401]]
 spotWorldDungeonLocation = [[682, 358], [433, 612]]
 fieldOrElite = 'WD'  # elite
 inExecution = 0
@@ -42,18 +42,12 @@ waitToActiveBattleOn = False
 def loopFarming():
     global thread
     if thread != False and thread.isAlive():
-        thread.cancel()
-        del thread
-        thread = False
+        thread.join()
 
-    thread = threading.Timer(8.0, loopFarming)  # every 7 minutes
+    thread = threading.Timer(8.0, doFarming)  # every 7 minutes
     thread.daemon = True
     thread.setName("Farming Thread")
     thread.start()
-    doFarming()
-        
-    
-        
     # thread.join()
 
 
@@ -96,16 +90,25 @@ def doFarming():
 
 
 def checkStep():
-    detectBlackScreen() # detect black screen error crasher
+    """file = "./now.png"
+    print("Modified")
+    print(os.stat(file)[-2])
+    print(os.stat(file).st_mtime)
+    print(os.path.getmtime(file))"""
+    # detectBlackScreen() # detect black screen error crasher
     if fieldOrElite == 'WD' or fieldOrElite == 'elite':
         detectCurrentStep()
 
     global currentStep
     print("Farming in "+str(fieldOrElite) +
           " | Checking Steps : " + str(currentStep))
+    
     if currentStep == 0:  # Main screen
         print("Step 0")
-        step00()
+        if fieldOrElite != 'field':
+            step00()
+        else:
+            checkDie()
     elif currentStep == 1:  # Touch Dungeon
         print("Step 1")
         step01()
@@ -219,6 +222,8 @@ def step04():
         if ImWorldDungeon():
             print("Go to spot")
             currentStep = 5
+            moveToAnyDirection()
+            time.sleep(2)
             backToFarm()
             return True
         else:
@@ -413,11 +418,11 @@ def ImWorldDungeon():
     global currentStep, now
     print("Detecting I'm in World Dungeon")
     # black ton
-    if detectMainScreen() and countPixelsInPosition_NOW(142, 1102, 21, 27, [14, 18, 23], 1, 100, now,True):
+    if detectMainScreen() and countPixelsInPosition_NOW(142, 1102, 21, 27, [185, 186, 186], 1, 100, now,True):
         print("I'm not World Dungeon")
         return False
     # gray ton    
-    elif detectMainScreen() and countPixelsInPosition_NOW(142, 1102, 21, 27, [178, 179, 80], 1, 100, now,True):
+    elif detectMainScreen() and countPixelsInPosition_NOW(142, 1102, 21, 27,[190, 191, 192], 1, 100, now,True):
         print("I'm not in World Dungeon²")
         return False
     else:

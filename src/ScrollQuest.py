@@ -28,17 +28,12 @@ thread = False
 
 
 def loopScrollQuest():
-    # restart()
     global thread
-    # maybe this can get a great performace
     if thread != False and thread.isAlive():
-        thread.cancel()
-        thread = False
-        
-    thread = threading.Timer(6.0, loopScrollQuest)
+        thread.join()         
+    thread = threading.Timer(6.0, doScrollQuest)
     thread.daemon = True # stop if the program exits
     thread.start()
-    doScrollQuest()
 
 
 def doScrollQuest():
@@ -50,26 +45,21 @@ def doScrollQuest():
     from .TowerOfInsolence import TowerOfInsolenceIsDone
     from .EliteQuest import EliteQuestIsDone
     
-    if logged == 0 or EliteQuestIsDone == 0 or TowerOfInsolenceIsDone == 0 or DailyDungeonIsDone == 0 or finishedTempleGuardian == 0 or scrollQuestIsDone == 1:
+    if not logged or not EliteQuestIsDone or not TowerOfInsolenceIsDone or not DailyDungeonIsDone or finishedTempleGuardian == 0 or scrollQuestIsDone == 1:
         return False
-    
-    if inExecution == 0:
-        print("Daily Quest")
-        if os.path.isfile('./now.png') == False:
-            liveScreen()
-            time.sleep(5)
-        now = datetime.now()
-        print(str(now.strftime("%H:%M:%S")))
-        inExecution = 1
-        checkMainTab()
-        checkMapisOpened()
-        checkStopService()
-        checkDie()
-        checkStep()
-        inExecution = 0
-    else:
-        print("In Execution")   
-        time.sleep(4) 
+
+    print("======== Daily Quest =========== ")
+    if os.path.isfile('./now.png') == False:
+        liveScreen()
+        time.sleep(5)
+    now = datetime.now()
+    print(str(now.strftime("%H:%M:%S")))
+    checkMainTab()
+    checkMapisOpened()
+    checkStopService()
+    checkDie()
+    checkStep()
+    print("======== Done Daily Quest =========== ")
 
 def checkMapisOpened():
     if checkExist("Resources\openmap.png") :

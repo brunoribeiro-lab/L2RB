@@ -56,15 +56,17 @@ def checkLogged():
     return logged
 
 def loopLoggin():
-    global threadLogin, logged, Try, now, jumpsC , jumpsC
+    global threadLogin
     if threadLogin != False and threadLogin.isAlive():
         threadLogin.cancel()
-        del threadLogin
-        threadLogin = False
+        threadLogin.join()
       
-    threadLogin = threading.Timer(8.0, loopLoggin)
+    threadLogin = threading.Timer(8.0, mainThread)
     threadLogin.daemon = True # stop if the program exits
     threadLogin.start()
+
+def mainThread():
+    global  logged, Try, now, jumpsC , jumpsC
     if not process_exists(emulators[currentEmulator][0]):
         print("Emulator not running, starting : " + emulators[currentEmulator][1])
         logged = 0
@@ -98,7 +100,6 @@ def loopLoggin():
             assert not isinstance(now, type(None)), 'image not found'
             Try = 0
             doLogin()
-    #threadLogin.join()        
 
 # check playstore service has stopped and touch tap
 def checkStopService():
@@ -128,7 +129,7 @@ def checkStopService():
 
 
 def doLogin():
-    global now, text, loggedStep, logged, threadLogin, executing, text, attempt
+    global now, text, loggedStep, logged, executing, text, attempt
     print("================== LOGIN THREAD ========================")
     #text = ''
     text = extractText(now) # esse talvez seja o problema de high RAM
@@ -145,17 +146,12 @@ def checkSteps():
     if loggedStep == 0:  # Emulator not runing
         listOfProcessIds = process_exists(emulators[currentEmulator][0])
         running = False
-        if len(listOfProcessIds) > 0:
+        if listOfProcessIds:
             print('Process Exists | PID and other details are')
-            for elem in listOfProcessIds:
-                processID = elem['pid']
-                processName = elem['name']
-                processCreationTime =  time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(elem['create_time']))
-                print((processID ,processName,processCreationTime ))
-                loggedStep = 1
-                running = True
+            loggedStep = 1
+            running = True
                 
-        if running == False :
+        if not running :
             print('No Running Process found with given text')
             openL2()
             loggedStep = 1  # step Emulator is oppened
@@ -176,6 +172,7 @@ def checkSteps():
 
 def detectCurrentStep():
     global loggedStep, banner_find, banner_find2, now, text, logged,lastConfirmedLogged
+    print("detecting current step")
     positions = find_matches(now, banner_find)
     if len(positions) > 0:
         print("Closing banner")
@@ -245,7 +242,8 @@ def closeBanners():
         print("Ready to Play Game")
         touch(1105, 655)  # play game
         return False
-    elif smartDetectPlay() :
+    # detect play button
+    elif countPixelsInPosition_NOW(628,960,280,63, [50,101,70], 130, 1000, now, True):
         print("Tap in Play from smart detect")
         loggedStep = 3  # step waiting for login
         touch(1105, 655)  # play game
@@ -257,10 +255,8 @@ def closeBanners():
 
 
 def checkL2Crasher():
-    global loggedStep, lastStep2Invalid, text, logged, now,lauch,\
-            lauch2, iconPositionX, iconPositionY, crashed, pot3, pot4
+    global loggedStep, lastStep2Invalid, text, logged, now,lauch, lauch2, iconPositionX, iconPositionY, crashed, pot3, pot4
     print("Checking L2 Crashed")
-    
     if (text.find("You have been disconnected") > 0 or text.find("been disconnected") > 0) and (findImage(now,pot3) or findImage(now,pot4)) :    
         logged = 0
         loggedStep = 0
@@ -291,32 +287,6 @@ def checkL2Crasher():
         return True
     
     return False  
-
-    if not iconPositionX or not iconPositionX:
-        positionsLauch = find_matches(now, lauch)
-        if len(positionsLauch) > 0:
-            print("Lineage crasher 1")
-            logged = 0
-            # save position just once
-            iconPositionX = positionsLauch[0][0]
-            iconPositionY = positionsLauch[0][1]
-            loggedStep = 2  # step waiting for login
-            print("Opening ...")
-            touch(iconPositionX, iconPositionY)
-            return True
-    elif findImage(now, lauch) :
-        loggedStep = 2  # step waiting for login
-        touch(iconPositionX, iconPositionY)
-        return True
-    elif findImage(now, crashed):
-        print("Lineage crasher")
-        logged = 0
-        loggedStep = 1
-        touch(800,161)
-        time.sleep(2)
-        return True
-    else:
-        return False
 
 
 def detectMimeDate():
@@ -418,7 +388,7 @@ def checkisLogged():
 # Detect is Ready To login
 def findMyChar():
     # talvez precise add os passos atuais nos outros
-    global loggedStep, text
+    global loggedStep, text, now
     if smartDetectLoginAvaiable():
         print("Ready to login 0")
         tapInLogin()  # touch in Find my Character
@@ -431,6 +401,7 @@ def findMyChar():
         return True
     else:
         print("Not loaded yet !")  
+        loggedStep = 2
         return True
         #loggedStep = 2
         
@@ -511,26 +482,8 @@ def smartDetectLoginAvaiable():
         return True
     else:
         return False 
-    """
-    from .loginL2 import now  # now
-    if now is None:
-        print("smart detect login avaiable can't get current screen")
-        time.sleep(5)  # skip to next thread execution
-        return False
-    top = 583
-    right = 645
-    height = 15
-    width = 15
-    crop_img = now[top : (top + height) , right: (right + width)]
-    sought = [197,206,219]
-    imm = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
-    result = np.count_nonzero(np.all(imm==sought,axis=2))
-    print("LOGIN PIXELS : " + str(result))
-    if result > 2 and result < 5 : 
-        return True
-    else:
-        return False  """
-    
+
+# testar se funcionar remover essa funcao
 def smartDetectPlay() :
     from .loginL2 import now  # now
     if now is None:

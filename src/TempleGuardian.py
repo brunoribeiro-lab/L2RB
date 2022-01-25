@@ -35,9 +35,9 @@ def loopTempleGuardian():
             thread.cancel()
             thread = False
             jumpsC = 0
-            print("Stop Thread : Sumonning Circle")
         else:
             jumpsC += 1
+            time.sleep(5)
         
     thread = threading.Timer(12.0, loopTempleGuardian)
     thread.daemon = True # stop if the program exits
