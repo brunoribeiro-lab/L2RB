@@ -1,4 +1,4 @@
-from .Utils import liveScreen, touch, extractText, extractTextFromResize, countPixelsInPosition
+from .Utils import countPixelsInPosition_NOW, restartL2, liveScreen, touch, extractText, extractTextFromResize, countPixelsInPosition
 from .Utils import findImage
 
 import cv2
@@ -12,20 +12,24 @@ from .loginL2 import checkStopService, checkExist
 positionsCrop = [[277,9,220,50],[382,9,130,20],[348,244,5,5 ]] 
 positions = [[112,326],[119, 394],[110, 225]] # position to click in scroll quest, 0 is seconds position and 1 is third, 2 is first position
 position = 2 # current position
-scrollQuestIsDone = 1
+scrollQuestIsDone = 0
 finished = 0
 currentStep = 0  # step 0 = no runinng scroll, 1 = Select Scroll, 2 = Confirm Scroll, 3 = Start Scroll, 4 = walk, 5 = Doing, 6 = Claim
 inExecution = 0
 lastStep = 0
 thread = False
+now = None
+Try = 0
+scrollA = cv2.imread("Resources\Screenshot_20220129-192543.png")
+scrollCraft = cv2.imread("Resources\Screenshot_20220209-214356.png")
+
+die = cv2.imread("Resources\die.png")
 # BUGS/IMPROVEMENTS
 # 0. Verificar a posicao do click em scroll quest
 # 1. SO resta testar se da algum problema
 # 2. verificar se tem scroll ao iniciar
 # 3. melhorar teleport qndo for em outro territorio
-# 4. Ainda da pra deixa mais rapido
 # 5. Puxar a informacao de um txt evita qndo desligar e ligar o bot fazer tudo de novo
-
 
 def loopScrollQuest():
     global thread
@@ -37,7 +41,7 @@ def loopScrollQuest():
 
 
 def doScrollQuest():
-    global finished, currentStep, inExecution, scrollQuestIsDone, thread
+    global finished, now,Try, currentStep, inExecution, scrollQuestIsDone, thread
     from .loginL2 import logged
     from .loginL2 import text  # extracted text
     from .DailyDungeon import DailyDungeonIsDone
@@ -49,16 +53,29 @@ def doScrollQuest():
         return False
 
     print("======== Daily Quest =========== ")
-    if os.path.isfile('./now.png') == False:
-        liveScreen()
-        time.sleep(5)
-    now = datetime.now()
-    print(str(now.strftime("%H:%M:%S")))
-    checkMainTab()
-    checkMapisOpened()
-    checkStopService()
-    checkDie()
-    checkStep()
+    liveScreen()
+    if os.path.isfile('./now.png') == True:
+        now = cv2.imread("now.png")
+        if now is None:
+            Try+= 1
+            print("Current Screen not found #"+str(Try))
+            time.sleep(3) # skip to next thread execution
+            if Try >= 15 : 
+                Try = 0
+                logged = 0
+                restartL2()
+            return False    
+        size = os.path.getsize("./now.png")
+        if size < 200:
+            print("problem with current screen : " + str(size))
+                
+        assert not isinstance(now, type(None)), 'image not found'
+        Try = 0
+        checkMainTab()
+        checkMapisOpened()
+        checkStopService()
+        checkDie()
+        checkStep()
     print("======== Done Daily Quest =========== ")
 
 def checkMapisOpened():
@@ -84,46 +101,12 @@ def checkStep():
 
 
 def checkCompleted():
-    global finished, scrollQuestIsDone, currentStep
+    global finished, scrollQuestIsDone, currentStep, now, scrollA,scrollCraft
     from .loginL2 import text  # extracted text
-    if text.find('Complete Count 10/10') > 0:
-        finished = 10
-        currentStep = 1
-        scrollQuestIsDone = 1
-        touch(1014, 173)
-        return True
-    elif text.find('Count 10/10') > 0:
-        finished = 10
-        currentStep = 1
-        scrollQuestIsDone = 1
-        touch(1014, 173)
-        return True
-    elif text.find('Count Recharge') > 0:
-        finished = 10
-        currentStep = 1
-        scrollQuestIsDone = 1
-        return True
-    # crop Recharge button and check color
-    elif countPixelsInPosition(505,423,205,60,[40,133,193], 30, 100) :
+    if (findImage(now, scrollA) or findImage(now, scrollCraft)) and not countPixelsInPosition_NOW(504,630,200,80,[52, 104, 72], 30, 300,now):
+        print("Scroll quest done")
         return setLikeDone()
-    elif countPixelsInPosition(505,423,205,60,[41, 90, 131], 150, 200) :
-        return setLikeDone()
-    elif countPixelsInPosition(505,423,205,60,[31, 87, 133], 35, 80) :
-        return setLikeDone()
-    elif countPixelsInPosition(297,226,35,30,[189,121,88], 4, 20) :
-        return setLikeDone(False)
-    # crop Recharge button and check color
-    elif countPixelsInPosition(505,423,205,60,[29,40,57], 700, 1000) :
-        step01()
-        return True
-    #elif text.find('Recharge') > 0 and currentStep == 1:
-    #    print("Sub-Quest Done..")
-    #    finished = 10
-    #    currentStep = 1
-    #    scrollQuestIsDone = 1
-    #    touch(1014, 173)
-    #    return True
-
+    
 
 def setLikeDone(close=True):
     global finished, currentStep, scrollQuestIsDone
@@ -137,11 +120,10 @@ def setLikeDone(close=True):
     return True
 
 def checkDie():
-    from .loginL2 import now  # extracted text
+    global now, die
     if now is None:
         time.sleep(5)  # skip to next thread execution
         return False
-    die = cv2.imread("Resources\die.png")
     status = findImage(now, die)
     if status:
         print("I Die")
@@ -189,19 +171,6 @@ def detectCurrentStep():
     textFromSubQuest = extractTextFromResize(361, 2, 250, 80)
     #print("textFromSubQuest")
     #print(textFromSubQuest)
-    """if text.find('Bonus Points') > 0 or text.find('Points Start') > 0:
-        print("Leave from elite")
-        touch(859, 86)  # Leave from elite
-        time.sleep(4)
-        touch(1239, 44)  # Back to main screen
-        return False
-    elif text.find('Elite Points') > 0:
-        print("Leave from elite")
-        touch(859, 86)  # Leave from elite
-        time.sleep(4)
-        touch(1239, 44)  # Back to main screen
-        return False
-    el"""
     if countPixelsInPosition(450,645,240,60,[49,77,107], 450, 600) :
         print("Touch in OK 0")
         touch(764, 483)  # Click in OK to accept quest 1280x720
@@ -523,9 +492,7 @@ def step04():
     if now is None:
         time.sleep(5)  # skip to next thread execution
         return False
-
-    #teleportPNG = cv2.imread("Resources\step_teleport.png")
-    #checkTeleport = findImage(now, teleportPNG)
+    
     if countPixelsInPosition(494,814,50,46,[101, 249, 249], 1, 2) : #checkTeleport:
         print("Tap in run")
         touch(495, 522)  # tap in run 1280x720

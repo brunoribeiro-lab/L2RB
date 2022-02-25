@@ -1,4 +1,4 @@
-from .Utils import countPixelsInPosition_NOW, checkExist_NOW, restartL2, liveScreen, swipe, touch, findImage
+from .Utils import checkProcessExist,killProcess, countPixelsInPosition_NOW, checkExist_NOW, restartL2, liveScreen, swipe, touch, findImage
 import cv2
 import threading
 import time
@@ -15,13 +15,14 @@ blackWindowsError = False
 # spot Elite, x, y ( 0 in spot elite is like normal field)
 spotLocation = [[32, 527, 206], [32, 510, 256]]
 spotFieldLocation = [[444, 632], [405, 401]]
-spotWorldDungeonLocation = [[682, 358], [433, 612]]
+spotWorldDungeonLocation =  [[453, 404], [682, 358]] # [[682, 358], [474, 377]]
 fieldOrElite = 'WD'  # elite
 inExecution = 0
 channel = 1
 currentStep = 0  # 0 = main screen, 1 = dungeon, 2 normal dungeon, 3 world dungeon or elite, 4 = elite, 5 = farming
 lastCheck = datetime.now()
 lastDied = datetime.now()
+lastFieldSpot = datetime.now()
 backing = 0
 thread = False
 EliteDungeonList = ['Elven Ruins 1', 'Elven Ruins 2', 'Ant Nest 1', 'Ant Nest 2', 'Cruma Tower 2F', 'Cruma Tower 3F', 'Ivory Tower Catacomb 1', 'Ivory Tower Catacomb 2', 'Ivory Tower Catacomb 3', 'Ivory Tower Catacomb Laboratory', 'Forest of Secrets Canopy', 'Forest of Secrets Understory', 'Forest of Secrets Slaughter Site', 'Dragon\'s Cave Catacomb 1', 'Dragon\'s Cave Catacomb 2', 'Dragon\'s Cave Catacomb Depths', 'Cave of Trials Catacomb 1', 'Cave of Trials Catacomb 2',
@@ -32,12 +33,15 @@ die = cv2.imread("Resources\die.png")
 inventory = cv2.imread("Resources\Screenshot_20211221-151013.png")
 life = cv2.imread("Resources\monster00.png")
 store = cv2.imread("Resources\Screenshot_20220111-002625.png")
-mapOpened = cv2.imread("Resources\Screenshot_20220111-002625.png")
-mapOpened2 = cv2.imread("Resources\Screenshot_20220111-021906.png")
+shopOpened = cv2.imread("Resources\Screenshot_20220111-002625.png")
+shopOpened2 = cv2.imread("Resources\Screenshot_20220111-021906.png")
 worldDungeonScreen = cv2.imread("Resources\Screenshot_20220109-195401.png")
+mapOpened = cv2.imread("Resources\Screenshot_20220111-020752.png")
+
 now = False
 Try = 0
 waitToActiveBattleOn = False
+
 
 def loopFarming():
     global thread
@@ -90,19 +94,16 @@ def doFarming():
 
 
 def checkStep():
-    """file = "./now.png"
-    print("Modified")
-    print(os.stat(file)[-2])
-    print(os.stat(file).st_mtime)
-    print(os.path.getmtime(file))"""
-    # detectBlackScreen() # detect black screen error crasher
+    # talvez aqui resolva o problema de travamento em telas
+    # se houver uma diferenca de 1m com a data atual reinicia com a funcao restart()
+    detectInvalidScreen()  # detect black screen error crasher
     if fieldOrElite == 'WD' or fieldOrElite == 'elite':
         detectCurrentStep()
 
     global currentStep
     print("Farming in "+str(fieldOrElite) +
           " | Checking Steps : " + str(currentStep))
-    
+
     if currentStep == 0:  # Main screen
         print("Step 0")
         if fieldOrElite != 'field':
@@ -121,26 +122,25 @@ def checkStep():
     elif currentStep == 4:  # Touch in Normal Dungeon
         print("Step 4")
         step04()
-        checkDie()
     elif currentStep == 5:  # Farming
         print("Step 5")
         checkDie()
 
 
 def checkDie():
-    global die,currentStep, inventory, lastDied, farming, spotLocation, spotFieldLocation, fieldOrElite, backing, lastCheck
+    global die, currentStep, lastFieldSpot, inventory, lastDied, farming, spotLocation, spotFieldLocation, fieldOrElite, backing, lastCheck
     from .loginL2 import now  # current now
     from .loginL2 import text  # extracted text
     if now is None:
-        time.sleep(5)  # skip to next thread execution
         return False
-
+    
+    assert not isinstance(now, type(None)), 'image not found'
     # if detectImElite() == False:
     #    farming = 0
     #    backing = 1
     #    backToElite()
     current = datetime.now()
-    if findImage(now, die) or text.find("illed by") > 0:
+    if findImage(now, die):
         lastDied = datetime.now()
         print("I die back to spot")
         lastCheck = False
@@ -151,15 +151,26 @@ def checkDie():
         backing = 0
         return True
     else:
-        #detectImNotInDungeon()
+        # detectImNotInDungeon()
         # Yeah, I'm living
         if smarthDetectImFarming():  # melhorar isso aqui ta errado
             print("I'm farming right now")
+            lastFieldSpot = current
             lastCheck = current
 
+        # vai da merda
+        if fieldOrElite == 'field' and lastFieldSpot != False:
+            #lastFieldSpot = current
+            now_plus = lastFieldSpot + timedelta(0, 1 * 60)
+            if datetime.timestamp(now_plus) < datetime.timestamp(current):
+                print("waited 1 minute, auto on")
+                detectAutoOn()  # is auto ?
+                
+                    
         if backing == 0 and findImage(now, inventory) == False:
             if detectMainScreen() and currentStep == 5:
                 if waitToActiveBattleOn == False or datetime.timestamp(waitToActiveBattleOn) < datetime.timestamp(current):
+                    print("shoud be here")
                     detectAutoOn()  # is auto ?
         # if backing == 0 :
         #    detectAutoOn() # is auto ?
@@ -173,6 +184,8 @@ def checkDie():
             now_plus_2 = lastCheck + timedelta(0, 2 * 60)
             if datetime.timestamp(current) >= datetime.timestamp(now_plus_2):
                 lastCheck = current
+                if fieldOrElite == 'field':
+                    lastFieldSpot = current
                 backToFarm()
                 print("yes")
             else:
@@ -180,12 +193,35 @@ def checkDie():
 
         return False
 
-
+def step01():
+    global fieldOrElite, currentStep, now
+    if fieldOrElite != 'field':
+        if detectMenuIsOpened() :
+            print("Touch in Dungeon")
+            touch(300, 659)  # touch in dungeon
+            time.sleep(2)
+            liveScreen()
+            time.sleep(2)
+            if os.path.isfile('now.png') == True:
+                now = cv2.imread("now.png")
+            #currentStep = 2
+        else:
+            print("aqui deveria da merda 6431")
+            
 def step02():
     global currentStep, thread, now
     if fieldOrElite == "WD":
-        touch(988, 521)  # touch in World Dungeon
-        currentStep = 3
+        if detectDungeonMenuIsOpened():
+            print("Touch in World Dungeon")
+            touch(988, 521)  # touch in World Dungeon
+            time.sleep(2)
+            liveScreen()
+            time.sleep(2)
+            if os.path.isfile('now.png') == True:
+                now = cv2.imread("now.png")
+            #currentStep = 3
+        else:
+            print("Aqui deveria da merda 314")
     elif fieldOrElite == "elite":
         touch(120, 517)  # touch in Normal Dungeon
         currentStep = 3
@@ -201,21 +237,26 @@ def step03():
             if countPixelsInPosition_NOW(653, 1121, 70, 40, [194, 5, 1], 100, 1000, now, True):
                 print("insuficient proof blood, changing to Elite Farm")
                 touch(1240, 41)  # tap in Main screen
-                time.sleep(1)
                 fieldOrElite = 'field'  # change to elite
-                currentStep = 4 # just choice the spot
+                currentStep = 4  # just choice the spot
                 return True
             else:
                 touch(1013, 666)  # touch in Entry Request
                 currentStep = 4
+                liveScreen()
+                time.sleep(2)
+                if os.path.isfile('now.png') == True:
+                    now = cv2.imread("now.png")
                 return True
         else:
             touch(1240, 41)  # I no have Idea, Main screen ?
             time.sleep(1)
             fieldOrElite = 'field'  # change to elite
-            currentStep = 4 # just choice the spot
+            currentStep = 4  # just choice the spot
 
 # step 4 go to spot
+
+
 def step04():
     global currentStep, fieldOrElite
     if fieldOrElite == "WD":
@@ -230,27 +271,31 @@ def step04():
             print("Wait enter in Would Dungeon")
             return False
     elif fieldOrElite == "field":
-         print("Go to spot")
-         currentStep = 5
-         backToFarm()
-         return True
+        print("Go to spot")
+        currentStep = 5
+        backToFarm()
+        return True
     else:
         return False
 
 
 def step00():
-    global fieldOrElite, currentStep
-    if detectInvalidStep() and fieldOrElite != 'field':
-        touch(923, 30)  # touch(235, 400)
+    global fieldOrElite, currentStep, now
+    if fieldOrElite != 'field' and detectMainScreen():
+        print("Touch in Menu")
+        touch(923, 30)  # Touch in menu
+        # evita clicks invalidos
+        time.sleep(2)
+        liveScreen()
+        time.sleep(2)
+        if os.path.isfile('now.png') == True:
+            now = cv2.imread("now.png")
     elif fieldOrElite == 'field':
         # verificar se no field e pular para o passo de ir para o spot
         print("Farming Field")
 
 
-def step01():
-    global fieldOrElite
-    if fieldOrElite != 'field':
-        touch(300, 659)  # touch in dungeon
+
 
 
 def revival():
@@ -273,7 +318,8 @@ def revival():
 
 def backToFarm():
     global spotLocation, fieldOrElite, spotFieldLocation, spotWorldDungeonLocation, waitToActiveBattleOn
-    waitToActiveBattleOn = datetime.now() + timedelta(0, 3 * 60) # wait 3 minutes for active
+    waitToActiveBattleOn = datetime.now() + timedelta(0, 3 *
+                                                      60)  # wait 3 minutes for active
     # click on map
     touch(1172, 92)
     time.sleep(5)
@@ -390,6 +436,10 @@ def smarthDetectImFarming():
     if fieldOrElite == "WD" and detectMainScreen() and countPixelsInPosition_NOW(67, 506, 250, 20, [184, 15, 15], 100, 10000, now, True):
         print("Farming in World Dungeon")
         return True
+    
+    if fieldOrElite == "field" and detectMainScreen() and countPixelsInPosition_NOW(67, 506, 250, 20, [184, 15, 15], 100, 10000, now, True):
+        print("Farming in World Dungeon")
+        return True
     # elif fieldOrElite == "WD" and (checkExist("Resources\monster0.png") or text.find('World Dungeon') > 0 or text.find('Berserker') > 0 or text.find('Berse') > 0  or text.find('Manipulated') > 0 or text.find("Manipula") > 0 or text.find("Manimilate") > 0 or text.find("erker") > 0 or text.find("Manipul") > 0) :
     #    print("Farming in World Dungeon")
     #    return True
@@ -418,23 +468,25 @@ def ImWorldDungeon():
     global currentStep, now
     print("Detecting I'm in World Dungeon")
     # black ton
-    if detectMainScreen() and countPixelsInPosition_NOW(142, 1102, 21, 27, [185, 186, 186], 1, 100, now,True):
+    if detectMainScreen() and countPixelsInPosition_NOW(142, 1102, 21, 27, [185, 186, 186], 1, 100, now, True):
         print("I'm not World Dungeon")
         return False
-    # gray ton    
-    elif detectMainScreen() and countPixelsInPosition_NOW(142, 1102, 21, 27,[190, 191, 192], 1, 100, now,True):
+    # gray ton
+    elif detectMainScreen() and countPixelsInPosition_NOW(142, 1102, 21, 27, [190, 191, 192], 1, 100, now, True):
         print("I'm not in World Dungeon²")
         return False
     else:
         return True
 
+
 def detectImInWorldDungeon():
-    if detectMainScreen() and countPixelsInPosition_NOW(137, 1102, 25, 40, [73, 78, 75], 1, 100, now,True):
+    if detectMainScreen() and countPixelsInPosition_NOW(137, 1102, 25, 40, [73, 78, 75], 1, 100, now, True):
         return False
-    elif detectMainScreen() and countPixelsInPosition_NOW(137, 1102, 25, 40, [199, 199, 198], 1, 100, now,True):
+    elif detectMainScreen() and countPixelsInPosition_NOW(137, 1102, 25, 40, [199, 199, 198], 1, 100, now, True):
         return False
     else:
         return True
+
 
 def detectInvalidStep():
     global currentStep
@@ -463,42 +515,36 @@ def detectMainScreen():
 
 def detectCurrentStep():
     from .loginL2 import text  # extracted text
-    global now, currentStep, store, fieldOrElite, mapOpened,mapOpened2
-    if countPixelsInPosition_NOW(500, 103, 45, 20, [210, 210, 210], 1, 30, now) and countPixelsInPosition_NOW(500, 277, 45, 45, [210, 210, 210], 1, 30, now):
-        currentStep = 2
+    global now, currentStep, store, fieldOrElite, shopOpened, shopOpened2
+    if detectDungeonMenuIsOpened():
+        #currentStep = 2
         return True
-    elif countPixelsInPosition_NOW(500, 103, 45, 20, [209, 209, 210], 1, 30, now) and countPixelsInPosition_NOW(500, 277, 45, 45, [209, 209, 210], 1, 30, now):
-        currentStep = 2
-        return True
-    elif countPixelsInPosition_NOW(635, 451, 40, 50, [210, 210, 210], 1, 30, now) and countPixelsInPosition_NOW(655, 277, 45, 20, [210, 210, 210], 1, 30, now):
-        currentStep = 1
-        return True
-    elif countPixelsInPosition_NOW(635, 451, 40, 50, [209, 209, 210], 1, 30, now) and countPixelsInPosition_NOW(655, 277, 45, 20, [209, 209, 210], 1, 30, now):
-        currentStep = 1
+    elif detectMenuIsOpened() and currentStep != 2:
         return True
     elif currentStep == 5 and fieldOrElite == 'WD' and not ImWorldDungeon():
         currentStep = 0
         return True
-    elif (currentStep != 5) and fieldOrElite == 'WD' and ImWorldDungeon():
+    elif (currentStep != 5) and (currentStep != 2) and (currentStep != 3)  and (currentStep != 4) and fieldOrElite == 'WD' and ImWorldDungeon():
+        print("..")
         currentStep = 5
         return True
     elif currentStep != 0 and currentStep != 5 and currentStep != 4 and detectInvalidStep():
         currentStep = 0
         return True
     # check is store screen
-    elif findImage(now, store) :
+    elif findImage(now, store):
         print("Invalid Screen, Backing to Main Screen")
         touch(1243, 38)
         time.sleep(1)
         currentStep = 0
         return True
-    elif findImage(now, mapOpened) and currentStep != 4:
+    elif findImage(now, shopOpened) and currentStep != 4:
         print("Invalid Screen, MAP, Backing to Main Screen")
         touch(1243, 38)
         time.sleep(1)
         currentStep = 0
         return True
-    elif findImage(now, mapOpened2) and currentStep != 4:
+    elif findImage(now, shopOpened2) and currentStep != 4:
         print("Invalid Screen, MAP, Backing to Main Screen")
         touch(1068, 57)
         time.sleep(1)
@@ -536,26 +582,58 @@ def detectInvalidStep():
         return False
 
 # sometimes the game frezen in a black screen
-def detectBlackScreen():
-    global now, blackWindowsError
-    print("Checking Erro Black Screen")
-    if countPixelsInPosition_NOW(0, 0, 1280, 720, [0, 0, 0], 900000, 931600, now,True):
-        if blackWindowsError != False:
-            if datetime.timestamp(blackWindowsError) < datetime.timestamp(datetime.now()):
-                print("Error Black Screen, Restarting Emulator....")
-                from .loginL2 import logged
-                logged = False
-                restartL2()
-                blackWindowsError = False
-                return True
-            else:
-                print("Black Screen detected, maybe it's nothing")
-                #blackWindowsError = datetime.now() + timedelta(0, 1 * 60) # wait 1 minute for restart emulator
-                return True
-        else:
-            blackWindowsError = datetime.now() + timedelta(0, 1 * 60) # wait 1 minute for restart emulator
-            return True
-    else:
-        print("No Erro Black Screen detected")
-        blackWindowsError = False
-        return False
+
+
+def detectInvalidScreen():
+    global now, mapOpened
+    # check map is opened for any reason
+    if countPixelsInPosition_NOW(660, 1015, 200, 50, [52, 83, 112], 300, 1000, now):
+        print("Closing Map")
+        touch(1243, 38)  # touch in back
+        return True
+
+def detectDungeonMenuIsOpened():
+    global now, currentStep
+    print("Detecting dungeon menu is opened")
+    # World Raid icon
+    if countPixelsInPosition_NOW(502,794,10,20,[12, 12, 20], 1, 10, now, True) and countPixelsInPosition_NOW(502,794,10,20,[208, 208, 210], 1, 10, now, True):
+        currentStep = 2
+        print("World Raid Icon")
+        return True
+    
+    # normal dungeon icon
+    if countPixelsInPosition_NOW(516,100,30,20,[187, 187, 189], 1, 20, now, True):
+        currentStep = 2
+        print("Normal Dungeon Icon")
+        return True
+    
+    # Temporal Rift icon
+    if countPixelsInPosition_NOW(518,274,30,20,[184, 184, 185], 1, 20, now, True):
+        currentStep = 2
+        print("Temporal Rift Icon")
+        return True
+    
+    return False
+
+def detectMenuIsOpened():
+    global now, currentStep
+    # Rankig icon
+    print("Detecting menu is opened")
+    if countPixelsInPosition_NOW(652,1130,30,20,[184, 184, 185], 1, 10, now, True):
+        currentStep = 1
+        print("Rankig Icon")
+        return True
+    
+    # Trading Post icon
+    if countPixelsInPosition_NOW(650,964,45,35,[184, 184, 185], 1, 20, now, True):
+        currentStep = 1
+        print("Trading Post Icon")
+        return True
+    
+    # Friends icon
+    if countPixelsInPosition_NOW(638,800,40,35,[184, 184, 185], 1, 50, now, True):
+        currentStep = 1
+        print("Friends Icon")
+        return True
+    
+    return False

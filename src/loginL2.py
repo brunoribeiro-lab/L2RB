@@ -1,4 +1,4 @@
-from .Utils import liveScreen,killL2Process, restartL2, touch,countPixelsInPosition_NOW, countPixelsInPosition, emulators, currentEmulator
+from .Utils import liveScreen,checkProcessExist,killProcess, killL2Process, restartL2, touch,countPixelsInPosition_NOW, countPixelsInPosition, emulators, currentEmulator
 from .Utils import findImage
 from .Utils import find_matches
 from .Utils import restart
@@ -20,6 +20,7 @@ threadLogin = False
 ThreadProcess = False
 executing = False
 now = False
+lnow = False
 text = '' # text extracted 
 Try = 0
 attempt = 0
@@ -29,6 +30,7 @@ attempt = 0
 # 3. Selecionar cha de algum lugar dinamico
 # 4. Ainda da pra deixar mais rapido
 # 5. Adicionar Pan's Special Auto-Clear
+positionsLauch = False
 lauch = cv2.imread("Resources\lauch.png")
 lauch2 = cv2.imread("Resources\lauch2.png")
 banner_find = cv2.imread("Resources\closeBanner1.png")
@@ -41,6 +43,12 @@ pot4 = cv2.imread("Resources\pot4.png")
 pot5 = cv2.imread("Resources\pot5.png")
 pot6 = cv2.imread("Resources\pot6.png")
 offline1 = cv2.imread("Resources\clock.png")
+
+offline2 = cv2.imread("Resources\Screenshot_20220201-102229.png")
+offline3 = cv2.imread("Resources\Screenshot_20220202-111309.png")
+offline4 = cv2.imread("Resources\Screenshot_20220201-102223.png")
+offline5 = cv2.imread("Resources\Screenshot_20220201-144546.png")
+
 loaded = cv2.imread("Resources\loaded.png")
 lastConfirmedLogged = datetime.now()
 lastStep2Invalid = False # prevent long time (probability frozen)
@@ -58,7 +66,7 @@ def checkLogged():
 def loopLoggin():
     global threadLogin
     if threadLogin != False and threadLogin.isAlive():
-        threadLogin.cancel()
+        #threadLogin.cancel()
         threadLogin.join()
       
     threadLogin = threading.Timer(8.0, mainThread)
@@ -66,7 +74,7 @@ def loopLoggin():
     threadLogin.start()
 
 def mainThread():
-    global  logged, Try, now, jumpsC , jumpsC
+    global  logged, Try, now, jumpsC , jumpsC, lnow
     if not process_exists(emulators[currentEmulator][0]):
         print("Emulator not running, starting : " + emulators[currentEmulator][1])
         logged = 0
@@ -81,6 +89,7 @@ def mainThread():
     else:
         liveScreen()
         if os.path.isfile('./now.png') == True:
+            lnow = now
             now = cv2.imread("now.png")
             if now is None:
                 Try+= 1
@@ -99,6 +108,16 @@ def mainThread():
                 
             assert not isinstance(now, type(None)), 'image not found'
             Try = 0
+            file = "./now.png"
+            print("Modified")
+            dat = datetime.fromtimestamp(os.stat(file).st_ctime)
+            print(os.stat(file)[-2])
+            print(os.stat(file).st_mtime)
+            print(dat)
+            now_plus = dat + timedelta(0, 2 * 60)
+            if datetime.timestamp(now_plus) < datetime.timestamp(dat):
+                print("Error in created date")
+                restart()
             doLogin()
 
 # check playstore service has stopped and touch tap
@@ -248,6 +267,12 @@ def closeBanners():
         loggedStep = 3  # step waiting for login
         touch(1105, 655)  # play game
         return True
+    # detect Reward Dialog
+    elif countPixelsInPosition_NOW(106,1090,21,27,  [165, 167, 172], 150, 500, now):
+        print("Closing Reward Dialog")
+        touch(1102, 117)  # close reward dialog
+        loggedStep = 3
+        return True
     else:
         print("Wait banners")
         return False
@@ -255,8 +280,22 @@ def closeBanners():
 
 
 def checkL2Crasher():
-    global loggedStep, lastStep2Invalid, text, logged, now,lauch, lauch2, iconPositionX, iconPositionY, crashed, pot3, pot4
+    global loggedStep,positionsLauch,  lastStep2Invalid, text, logged, now,lauch, lauch2, iconPositionX, iconPositionY, crashed, pot3, pot4
     print("Checking L2 Crashed")
+    playstorePID = checkProcessExist("com.android.vending")
+    print(playstorePID)
+    if playstorePID :
+        print("Closing Playstore")
+        killProcess("com.android.vending")
+        return True
+        
+    browserPID = checkProcessExist("com.android.browser")
+    print(browserPID)
+    if browserPID :
+        print("Closing Browser")
+        killProcess("com.android.browser")  
+        return True
+        
     if (text.find("You have been disconnected") > 0 or text.find("been disconnected") > 0) and (findImage(now,pot3) or findImage(now,pot4)) :    
         logged = 0
         loggedStep = 0
@@ -265,19 +304,29 @@ def checkL2Crasher():
         return True
          
     #icon1 = find_matches(current, lauch)   
-    positionsLauch = find_matches(now, lauch)
-    if len(positionsLauch) > 0:
-        print("Lineage crasher 1")
+    if not positionsLauch:
+        pos = find_matches(now, lauch)
+        if len(pos) > 0:
+            print("Lineage crasher 1")
+            logged = 0
+            # save position just once
+            iconPositionX = pos[0][0]
+            iconPositionY = pos[0][1]
+            positionsLauch = [iconPositionX, iconPositionY]
+            lastStep2Invalid = datetime.now()
+            loggedStep = 2  # step waiting for login
+            print("Opening ...")
+            touch(iconPositionX, iconPositionY)
+            return True
+    elif findImage(now, lauch):
+        print("Lineage crasher 2")
         logged = 0
-        # save position just once
-        iconPositionX = positionsLauch[0][0]
-        iconPositionY = positionsLauch[0][1]
         lastStep2Invalid = datetime.now()
-        loggedStep = 2  # step waiting for login
-        print("Opening ...")
-        touch(iconPositionX, iconPositionY)
+        print("Opening ....")
+        touch(positionsLauch[0], positionsLauch[1])
         return True
-    
+        
+        
     if findImage(now, crashed):
         print("Lineage crasher")
         logged = 0
@@ -295,15 +344,17 @@ def detectMimeDate():
     return True
 
 def checkisLogged():
-    global logged, loggedStep, lastStep2Invalid, text, now, lastConfirmedLogged,offline1, pot1, pot2, pot3, pot4,pot5, pot6
+    global logged, loggedStep, lastStep2Invalid, text, now, lnow, lastConfirmedLogged,offline1, offline2, offline3, offline4,offline5,pot1, pot2, pot3, pot4,pot5, pot6
     print("Checking is logged")
     now_plus_15 = lastConfirmedLogged + timedelta(0, 15 * 60)
-    
-    if checkL2Crasher():
-        return True
-        
+    """ if lnow != False and  findImage(now,lnow):
+        print("Lineage frozen restarting Lineage")
+        restartL2()
+        logged = 0
+        loggedStep = 0"""
+
     if lastStep2Invalid != False and loggedStep == 2 and datetime.timestamp(datetime.now()) >= datetime.timestamp(lastStep2Invalid + timedelta(0, 1 * 60)): 
-        print("You emulator probability frozenm restart lineage")
+        print("You emulator probability frozen restart lineage")
         logged = 0
         loggedStep = 0
         lastStep2Invalid = False
@@ -324,7 +375,11 @@ def checkisLogged():
         logged = 1
         lastConfirmedLogged = datetime.now()
         return True
-    if findImage(now,offline1):  # reward recess point
+    if checkL2Crasher():
+        return True
+    
+    # reward recess point
+    if countPixelsInPosition_NOW(210, 203, 20, 15, [233, 252, 255], 1, 100, now): #findImage(now,offline1):  
         print("Recess reward")
         loggedStep = 0
         logged = 1
@@ -335,6 +390,44 @@ def checkisLogged():
         time.sleep(3)
         touch(1104, 116) # touch in claim reward, but can implement a select choice reward
         return True
+
+    # check pans special free
+    if findImage(now,offline2): 
+        print("Closing Pan's Special Free")
+        loggedStep = 0
+        logged = 1
+        lastConfirmedLogged = datetime.now()
+        touch(1060, 84) # touch in close this dialog
+        time.sleep(2)
+        return True
+    
+    if findImage(now,offline3): 
+        print("Closing reward login time today")
+        loggedStep = 0
+        logged = 1
+        lastConfirmedLogged = datetime.now()
+        touch(1103, 116) # touch in close this dialog
+        time.sleep(2)
+        return True
+    
+    if findImage(now,offline4):  
+        print("Closing reward month login")
+        loggedStep = 0
+        logged = 1
+        lastConfirmedLogged = datetime.now()
+        touch(1103, 116) # touch in close this dialog
+        time.sleep(2)
+        return True
+    
+    if findImage(now,offline5): 
+        print("Closing offline Mode")
+        loggedStep = 0
+        logged = 1
+        lastConfirmedLogged = datetime.now()
+        touch(643, 568) # touch in close this dialog
+        time.sleep(2)
+        return True
+    
     if findImage(now,pot3):  # offline mode
         print("Character Logged 3")
         loggedStep = 0
@@ -378,6 +471,7 @@ def checkisLogged():
         #touch(1102, 115)
         return True
     if datetime.timestamp(datetime.now()) >= datetime.timestamp(now_plus_15):
+        # verificar se n esta com algo aberto, tipo lotting
         print("something went wrong, restarting Lineage")
         restartL2()
         logged = 0
@@ -482,23 +576,3 @@ def smartDetectLoginAvaiable():
         return True
     else:
         return False 
-
-# testar se funcionar remover essa funcao
-def smartDetectPlay() :
-    from .loginL2 import now  # now
-    if now is None:
-        time.sleep(5)  # skip to next thread execution
-        return False
-    top = 628
-    right = 960
-    height = 63
-    width = 280
-    crop_img = now[top : (top + height) , right: (right + width)]
-    sought = [50,101,70]
-    imm = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
-    result = np.count_nonzero(np.all(imm==sought,axis=2))
-    print("Play pixels :"+str(result) )
-    if result >= 130 : 
-        return True
-    else:
-        return False

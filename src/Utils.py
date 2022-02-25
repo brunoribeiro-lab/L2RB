@@ -35,6 +35,9 @@ def findImage(pic1, pic2):  # pic1 is the original, while pic2 is the embedding
         time.sleep(2) # skip to next thread execution
         return False
     
+    if not pic1.shape:
+        return False
+        
     dim1_ori = pic1.shape[0]
     dim2_ori = pic1.shape[1]
 
@@ -196,6 +199,17 @@ def addSecs(tm, secs):
     return fulldate.time()
 
 def restart():
+    adb = adbutils.AdbClient(host="127.0.0.1", port=5037)
+    try:
+        d = adb.device()
+        d.shell('kill-server')
+        d.shell('start-server')
+        return True
+    except IOError:
+        print("Device not found, restarting....")
+        restartL2()
+        return False
+    """
     process = subprocess.Popen(
         r"C:\LDPlayer\LDPlayer4.0\adb.exe kill-server & C:\LDPlayer\LDPlayer4.0\adb.exe start-server",
         shell=True,
@@ -203,7 +217,7 @@ def restart():
         stdout=subprocess.PIPE
     )
     #output = process.communicate()[0].decode("utf-8")
-    process.wait()  # failed to start daemon
+    process.wait()  # failed to start daemon"""
 
 
 def kill():
@@ -292,6 +306,8 @@ def restartL2():
         lastRestartingEmulator = datetime.now()
         #os.startfile(emulators[currentEmulator][1])
         subprocess.Popen([emulators[currentEmulator][1],emulators[currentEmulator][2]])
+        time.sleep(45)
+        restart()
     else:
         print("Waiting Emulator start")
 
@@ -317,8 +333,29 @@ async def _live():
 
 def _liveScreen():
     asyncio.run(_live())
-
-
+    
+def checkProcessExist(package):
+    adb = adbutils.AdbClient(host="127.0.0.1", port=5037)
+    try:
+        d = adb.device()
+        stream = d.shell("pidof " + package)
+        return stream
+    except IOError:
+        print("Device not found, restarting....")
+        restartL2()
+        return False
+    
+def killProcess(pid):
+    adb = adbutils.AdbClient(host="127.0.0.1", port=5037)
+    try:
+        d = adb.device()
+        stream = d.shell("am force-stop " + pid)
+        return stream
+    except IOError:
+        print("Device not found, restarting....")
+        restartL2()
+        return False
+    
 def screenAliaisCAP(d):
     stream = d.shell("screencap /sdcard/now.png")
     return stream
