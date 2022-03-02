@@ -1,4 +1,4 @@
-from .Utils import checkProcessExist,killProcess, countPixelsInPosition_NOW, checkExist_NOW, restartL2, liveScreen, swipe, touch, findImage
+from .Utils import findImageByPosition, checkProcessExist,killProcess, countPixelsInPosition_NOW, checkExist_NOW, restartL2, liveScreen, swipe, touch, findImage
 import cv2
 import threading
 import time
@@ -13,7 +13,7 @@ farming = 0
 elite = 0
 blackWindowsError = False
 # spot Elite, x, y ( 0 in spot elite is like normal field)
-spotLocation = [[32, 527, 206], [32, 510, 256]]
+spotLocation = [[32, 527, 239], [32, 563,290], [32, 382,382]]
 spotFieldLocation = [[444, 632], [405, 401]]
 spotWorldDungeonLocation =  [[453, 404], [682, 358]] # [[682, 358], [474, 377]]
 fieldOrElite = 'WD'  # elite
@@ -37,7 +37,10 @@ shopOpened = cv2.imread("Resources\Screenshot_20220111-002625.png")
 shopOpened2 = cv2.imread("Resources\Screenshot_20220111-021906.png")
 worldDungeonScreen = cv2.imread("Resources\Screenshot_20220109-195401.png")
 mapOpened = cv2.imread("Resources\Screenshot_20220111-020752.png")
-
+eliteResource = cv2.imread("Resources\Screenshot_20220228-184657.png")
+elite2Resource = cv2.imread("Resources\Screenshot_20220228-190211.png")
+elite3Resource = cv2.imread("Resources\Screenshot_20220228-190930.png")
+elite4Resource = cv2.imread("Resources\Screenshot_20220228-203657.png")
 now = False
 Try = 0
 waitToActiveBattleOn = False
@@ -225,11 +228,16 @@ def step02():
     elif fieldOrElite == "elite":
         touch(120, 517)  # touch in Normal Dungeon
         currentStep = 3
+        time.sleep(3)
+        liveScreen()
+        time.sleep(2)
+        if os.path.isfile('now.png') == True:
+            now = cv2.imread("now.png")
     # thread.cancel()
 
 
 def step03():
-    global currentStep, thread, now, fieldOrElite
+    global currentStep, thread, now,eliteResource, fieldOrElite
     # detect first I'm correct screen
     if fieldOrElite == "WD":
         if checkExist_NOW(now, "Resources\Screenshot_20220109-195401.png"):  # todo check pot 100
@@ -237,8 +245,8 @@ def step03():
             if countPixelsInPosition_NOW(653, 1121, 70, 40, [194, 5, 1], 100, 1000, now, True):
                 print("insuficient proof blood, changing to Elite Farm")
                 touch(1240, 41)  # tap in Main screen
-                fieldOrElite = 'field'  # change to elite
-                currentStep = 4  # just choice the spot
+                fieldOrElite = 'elite'  # change to elite
+                currentStep = 0  # just choice the spot
                 return True
             else:
                 touch(1013, 666)  # touch in Entry Request
@@ -253,12 +261,29 @@ def step03():
             time.sleep(1)
             fieldOrElite = 'field'  # change to elite
             currentStep = 4  # just choice the spot
+    if fieldOrElite == "elite":
+        if findImageByPosition(167,543,320,515,now, eliteResource):
+            print("Tap in Elite Dungeon")
+            touch(710,420)
+            currentStep = 4  # just choice the spot
+            time.sleep(4)
+            liveScreen()
+            time.sleep(2)
+            if os.path.isfile('now.png') == True:
+                now = cv2.imread("now.png")
+        else:
+            print("Swipe to start")
+            swipe(320, 655, 320, 455, 0.5)  # swipe a little bit to down
+            time.sleep(4)
+            liveScreen()
+            time.sleep(2)
+            if os.path.isfile('now.png') == True:
+                now = cv2.imread("now.png")
 
 # step 4 go to spot
 
-
 def step04():
-    global currentStep, fieldOrElite
+    global currentStep, fieldOrElite, elite3Resource,elite4Resource, now
     if fieldOrElite == "WD":
         if ImWorldDungeon():
             print("Go to spot")
@@ -275,7 +300,23 @@ def step04():
         currentStep = 5
         backToFarm()
         return True
-    else:
+    elif fieldOrElite == "elite":
+        if findImageByPosition(535,33,580,150, now, elite3Resource) or findImageByPosition(535,33,580,150, now, elite4Resource):
+            print("Tap in Embrion Testing Grgound Restricted Area")
+            touch(335,610)
+            time.sleep(2)
+            touch(1109,659)
+            currentStep = 5  # just choice the spot
+            time.sleep(2)
+            liveScreen()
+            time.sleep(2)
+            if os.path.isfile('now.png') == True:
+                now = cv2.imread("now.png")
+            time.sleep(3)
+            backToFarm()
+        else:
+            swipe(320, 655, 320, 455, 0.5)  # swipe to down
+            currentStep = 4
         return False
 
 
@@ -478,7 +519,22 @@ def ImWorldDungeon():
     else:
         return True
 
-
+def ImEliteDungeon():
+    global currentStep, now
+    print("Detecting I'm in World Dungeon")
+    # black ton
+    if detectMainScreen() and countPixelsInPosition_NOW(157, 1165, 30, 25, [176, 177, 178], 1, 100, now, True):
+        print("I'm Elite Dungeon")
+        return True
+    # gray ton
+    elif detectMainScreen() and countPixelsInPosition_NOW(157, 1165, 30, 25, [190, 191, 192], 1, 100, now, True):
+        print("I'm Elite Dungeon²")
+        return True
+    elif not detectMainScreen():
+        return True
+    else:
+        return False
+    
 def detectImInWorldDungeon():
     if detectMainScreen() and countPixelsInPosition_NOW(137, 1102, 25, 40, [73, 78, 75], 1, 100, now, True):
         return False
@@ -515,14 +571,29 @@ def detectMainScreen():
 
 def detectCurrentStep():
     from .loginL2 import text  # extracted text
-    global now, currentStep, store, fieldOrElite, shopOpened, shopOpened2
+    global now, currentStep, store, fieldOrElite, shopOpened, shopOpened2, eliteResource
     if detectDungeonMenuIsOpened():
         #currentStep = 2
+        return True
+    elif fieldOrElite == 'elite' and findImageByPosition(167,543,320,515,now, eliteResource):
+        print("Elite Dungeon Menu")
+        currentStep = 3
+        return True
+    elif fieldOrElite == 'elite' and currentStep != 4 and findImageByPosition(320,1099,160,78,now, elite2Resource):
+        print("Elite Dungeon Menu Selector")
+        currentStep = 4   
         return True
     elif detectMenuIsOpened() and currentStep != 2:
         return True
     elif currentStep == 5 and fieldOrElite == 'WD' and not ImWorldDungeon():
         currentStep = 0
+        return True
+    elif currentStep == 5 and fieldOrElite == 'elite' and not ImEliteDungeon():
+        currentStep = 0
+        return True
+    elif (currentStep != 5) and (currentStep != 2) and (currentStep != 3)  and (currentStep != 4) and fieldOrElite == 'elite' and ImEliteDungeon():
+        print("..")
+        currentStep = 5
         return True
     elif (currentStep != 5) and (currentStep != 2) and (currentStep != 3)  and (currentStep != 4) and fieldOrElite == 'WD' and ImWorldDungeon():
         print("..")
@@ -591,6 +662,8 @@ def detectInvalidScreen():
         print("Closing Map")
         touch(1243, 38)  # touch in back
         return True
+    # check tower of isonece 
+    # darly quest
 
 def detectDungeonMenuIsOpened():
     global now, currentStep

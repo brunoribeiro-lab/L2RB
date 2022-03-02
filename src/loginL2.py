@@ -108,11 +108,8 @@ def mainThread():
                 
             assert not isinstance(now, type(None)), 'image not found'
             Try = 0
-            file = "./now.png"
+            dat = datetime.fromtimestamp(os.stat("./now.png").st_ctime)
             print("Modified")
-            dat = datetime.fromtimestamp(os.stat(file).st_ctime)
-            print(os.stat(file)[-2])
-            print(os.stat(file).st_mtime)
             print(dat)
             now_plus = dat + timedelta(0, 2 * 60)
             if datetime.timestamp(now_plus) < datetime.timestamp(dat):
