@@ -1,5 +1,5 @@
 from .loginL2 import checkExist
-from .Utils import extractTextFromResize, liveScreen, swipe, touch, extractText, countPixelsInPosition, findImageByPosition
+from .Utils import checkExist_NOW, extractTextFromResize,countPixelsInPosition_NOW, restartL2, liveScreen, swipe, touch, extractText, countPixelsInPosition, findImageByPosition
 from .Utils import findImage
 import cv2
 import threading
@@ -8,6 +8,7 @@ from .Utils import restart
 from datetime import date, timedelta, datetime
 import numpy as np
 import pytesseract
+import os
 EliteQuestIsDone = 1
 finished = 1  # 1-5 max
 currentStep = 0  # step 0 = no runinng scroll, 1 = Select Dungeon, 2 = Enter Doungeon, 3 = Start, 4 = Done
@@ -15,68 +16,93 @@ inExecution = 0
 DungeonDialogPosition = [[205, 0, 230, 90], [289, 0, 230, 90]]
 DungeonDialogPositionToTouch = [[108, 249], [108, 335]]
 defaultPosition = 0
+thread = False
+Try = 0 # obsolete
 # TODO/IMPROVEMENT
 # 1.) Na quinta masmorra o cha fica parado pq tem um mob na frente (Fazer mais testes)
 # 2.) Auto-clear all nao funcionando
 # 3.) Detectar em qual tela esta em todas as telas
+mapOpened = cv2.imread("Resources\Screenshot_20220111-020752.png")
+eliteResource = cv2.imread("Resources\Screenshot_20220228-184657.png")
+elite2Resource = cv2.imread("Resources\Screenshot_20220228-190211.png")
+elite3Resource = cv2.imread("Resources\Screenshot_20220228-190930.png")
+elite4Resource = cv2.imread("Resources\Screenshot_20220228-203657.png")
+store = cv2.imread("Resources\Screenshot_20220111-002625.png")
+shopOpened = cv2.imread("Resources\Screenshot_20220111-002625.png")
+shopOpened2 = cv2.imread("Resources\Screenshot_20220111-021906.png")
 
-
+required16 = cv2.imread("Resources\elvenRuins1.png")
+required16_2 = cv2.imread("Resources\elvenRuins2.png")
+die = cv2.imread("Resources\die.png")
 def loopEliteQuest():
-    threading.Timer(6.0, loopEliteQuest).start()
-    doEliteQuests()
-
+    global thread
+    if thread != False and thread.isAlive():
+        thread.join()    
+             
+    thread = threading.Timer(8.0, doEliteQuests)
+    thread.daemon = True # stop if the program exits
+    thread.setName("Elite Quests Thread")
+    thread.start()
 
 def doEliteQuests():
-    global finished
-    global currentStep
-    global inExecution
-    global EliteQuestIsDone
+    global finished, Try, now, currentStep, inExecution, EliteQuestIsDone 
     from .loginL2 import logged
-    from .loginL2 import text  # extracted text
     from .SummoningCircle import finishedSummoningCircle
     from .DailyDungeon import DailyDungeonIsDone
     from .TempleGuardian import finishedTempleGuardian
     from .TowerOfInsolence import TowerOfInsolenceIsDone
-    if logged == 0:
+    if not logged or not TowerOfInsolenceIsDone or not DailyDungeonIsDone or not finishedTempleGuardian or EliteQuestIsDone:
+        print("*****")
         return False
+    
+    print("======== Elite Quest Thread =========== ")
+    liveScreen()
+    if os.path.isfile('now.png') == True:
+        now = cv2.imread("now.png")
+        if now is None:
+            Try+= 1
+            print("Current Screen not found #"+str(Try))
+            time.sleep(3) # skip to next thread execution
+            if Try >= 15 : 
+                Try = 0
+                logged = 0
+                restartL2()
+            return False    
+        size = os.path.getsize("./now.png")
+        if size < 200:
+            print("problem with current screen : " + str(size))
+                
+        assert not isinstance(now, type(None)), 'image not found'
+        Try = 0
+        if finished > 5:
+            # temos que verificar se acabou tudo
+            if getAutoClearAll():
+                claimAll()
+                touch(1243, 39)  # back to main screen
+                return True
 
-    if TowerOfInsolenceIsDone == 0:
-        return False
+            return False
 
-    if DailyDungeonIsDone == 0:
-        return False
-
-    if finishedTempleGuardian == 0:
-        return False
-
-    if EliteQuestIsDone == 1:
-        return False
-
-    if finished > 5:
-        # temos que verificar se acabou tudo
-        if getAutoClearAll():
-            claimAll()
-            touch(1243, 39)  # back to main screen
-            return True
-
-        return False
-
-    if inExecution == 0:
+    
         print("Current Dungeon : " + str(finished))
-        now = datetime.now()
-        print(str(now.strftime("%H:%M:%S")))
+        # now = datetime.now()
+       #print(str(now.strftime("%H:%M:%S")))
         inExecution = 1
         checkDie()
         checkStep()
         inExecution = 0
+    print("======== End Elite Quest Thread =========== ")
 
 # change step 1-3 to close dialogs and step 4 is final quest
 
 
 def checkStep():
-    global currentStep
+    detectInvalidScreen()
     # verificar qual passo esta baseado em prints
-    print("Elite Quests : Cheking Steps")
+    detectCurrentStep()
+    global currentStep
+    print("Elite Quests : Cheking Steps : " + str(currentStep))
+   
     # checkCompleted()
     if currentStep == 0:  # Main screen
         print("Step 0")
@@ -129,14 +155,8 @@ def checkCompleted():
 
 
 def checkDie():
-    from .loginL2 import now  # extracted text
-    global currentStep
-    if now is None:
-        time.sleep(7)  # skip to next thread execution
-        return 'NO'
-    die = cv2.imread("Resources\die.png")
-    status = findImage(now, die)
-    if(status):
+    global currentStep, now, die
+    if(findImage(now, die)):
         print("I Die")
         currentStep = 5
         backToQuests()
@@ -157,69 +177,78 @@ def backToQuests():
 
 
 def step00():
-    global currentStep
-    touch(923, 30)  # touch(235, 400)
-    from .loginL2 import text  # extracted text
-    if text.find('Dungeon'):
-        currentStep = 1  # run to NPC
+    global currentStep, now
+    if detectMainScreen():
+        print("Touch in Menu")
+        touch(923, 30)  # Touch in menu
+        time.sleep(2)
+        liveScreen()
+        time.sleep(2)
+        if os.path.isfile('now.png') == True:
+            now = cv2.imread("now.png")
 
 
 def step01():
-    global currentStep
-    touch(300, 659)  # touch in dungeon
-    from .loginL2 import text  # extracted text
-    if text.find('Normal Dungeon'):
-        currentStep = 2  # run to NPC
-    elif text.find('Temporal Rift'):
-        currentStep = 2  # run to NPC
+    global currentStep, now
+    if detectMenuIsOpened():
+        print("Touch in Dungeon")
+        touch(300, 659)  # touch in dungeon
+        time.sleep(2)
+        liveScreen()
+        time.sleep(2)
+        if os.path.isfile('now.png') == True:
+            now = cv2.imread("now.png")
 
 
 def step02():
-    global currentStep
-    touch(120, 515)  # touch in Normal Dungeon
-    from .loginL2 import text  # extracted text
-    if text.find('Elite Dungeon'):
-        currentStep = 3  # run to NPC
-    elif text.find('Extraction Pit'):
-        currentStep = 3  # run to NPC
+    global currentStep, now
+    touch(120, 517)  # touch in Normal Dungeon
+    currentStep = 3
+    time.sleep(3)
+    liveScreen()
+    time.sleep(2)
+    if os.path.isfile('now.png') == True:
+        now = cv2.imread("now.png")
 
 
 def step03():
-    global currentStep
-    touch(700, 358)  # touch in dungeon
-    from .loginL2 import text  # extracted text
-   # if getAutoClearAll():
-   #     return claimAll()
-    if text.find('Required Level'):
-        currentStep = 4  # run to NPC
-        time.sleep(10)
-    elif text.find('Ivory Tower'):
-        currentStep = 4  # run to NPC
-        time.sleep(10)
-    elif text.find('Catacomb'):
-        currentStep = 4  # run to NPC
-        time.sleep(10)
-
+    global currentStep, now
+    if findImageByPosition(167,543,320,515,now, eliteResource):
+        print("Tap in Elite Dungeon")
+        touch(710,420)
+        currentStep = 4  # just choice the spot
+        time.sleep(4)
+        liveScreen()
+        time.sleep(2)
+        if os.path.isfile('now.png') == True:
+            now = cv2.imread("now.png")
+    else:
+        print("Swipe to start")
+        swipe(320, 655, 320, 455, 0.5)  # swipe a little bit to down
+        time.sleep(4)
+        liveScreen()
+        time.sleep(2)
+        if os.path.isfile('now.png') == True:
+            now = cv2.imread("now.png")
 
 def step04():
-    global currentStep
-    global finished
-    from .loginL2 import text, now  # extracted text
-    required16 = cv2.imread("Resources\elvenRuins1.png")
-    if findImageByPosition(100, 27, 250, 150, now, required16):
+    global currentStep, now, finished, required16, required16_2
+    if findImageByPosition(100, 27, 250, 150, now, required16) or findImageByPosition(100, 27, 250, 150, now, required16_2):
         print('First Dungeon')
+        #touch(325, 179)
         currentStep = 5  # select the dungeon
         return False
     else:
         currentStep = 4  # swipe again
         swipe(320, 129, 320, 655, 0.5)  # swipe to top
-        time.sleep(10)
+        time.sleep(3)
+        liveScreen()
+        time.sleep(2)
 
 
 def step05():
-    global currentStep
-    global finished
-    finished = autoDetectDone()
+    global currentStep, finished
+    autoDetectDone()
     if finished == 1:
         touch(325, 179)
     elif finished == 2:
@@ -247,28 +276,29 @@ def step05():
     print("Finished : " + str(finished))
     if getSelected == finished:
         currentStep = 6
-        time.sleep(10)
+        time.sleep(4)
         return True
     else:
-        time.sleep(7)
         currentStep = 4 # back to previous step, and select first dungeon
         return False
 
 # check is complete if not enter dungeon
 def autoDetectDone():
-    from .loginL2 import now  # extracted text
+    global now  # extracted text
     global finished
     required16Done = cv2.imread("Resources\Screenshot_20211217-225542.png")
+    
     if(findImageByPosition(127, 453, 593-453, 238-127, now, required16Done)):
         print("Selected Elven Ruins 1 Done")
-        return 1
+        finished = 1
+        return True
     
-    required16Done = cv2.imread("Resources\Screenshot_20211217-225542.png")
     if(findImageByPosition(260, 453, 593-453, 584-260, now, required16Done)):
         print("Selected Elven Ruins 2 Done")
-        return 2
+        finished = 2
+        return True
     
-    return 3
+    return finished
 
 def step06():
     global currentStep
@@ -384,8 +414,8 @@ def checkDOungeonCompleted():
 
 
 def getSelectedDungeon():
-    from .loginL2 import now  # extracted text
-    if checkExist("Resources\dungeon1.png") == True:
+    global now, required16_2  # extracted text
+    if checkExist("Resources\dungeon1.png") or findImageByPosition(100, 27, 250, 150, now, required16_2):
         print("Selected Elven Ruins 1")
         return 1
     
@@ -555,3 +585,135 @@ def claimAll():
     finished = 6
     EliteQuestIsDone = 1
     return False
+
+def detectInvalidScreen():
+    global now, mapOpened
+    # check map is opened for any reason
+    if countPixelsInPosition_NOW(660, 1015, 200, 50, [52, 83, 112], 300, 1000, now):
+        print("Closing Map")
+        touch(1243, 38)  # touch in back
+        return True
+    
+
+def detectCurrentStep():
+    global now, currentStep, store, shopOpened, shopOpened2, eliteResource
+    if findImageByPosition(167,543,320,515,now, eliteResource):
+        print("Elite Dungeon Menu")
+        currentStep = 3
+        return True
+    if detectMenuIsOpened() and currentStep != 2 and currentStep != 1:
+         currentStep = 1
+         print("Change to step 1")
+         return True
+    elif countPixelsInPosition_NOW(605,234,130,55,[129, 236, 255], 1, 50, now, True) or countPixelsInPosition_NOW(605,234,130,55,[178,200,228], 1, 50, now, True):
+        currentStep = 2
+        print("Selected Dungeon")
+        return True
+    #elif currentStep != 4 and findImageByPosition(320,1099,160,78,now, elite2Resource):
+    #    print("Elite Dungeon Menu Selector")
+    #    currentStep = 4   
+    #    return True
+    #elif currentStep == 5 and not ImEliteDungeon(now):
+    #    currentStep = 0
+    #    return True
+    elif currentStep > 0 and currentStep < 6 and detectInvalidStep():
+        currentStep = 0
+        return True
+    # check is store screen
+    elif findImage(now, store):
+        print("Invalid Screen, Backing to Main Screen")
+        touch(1243, 38)
+        time.sleep(1)
+        currentStep = 0
+        return True
+    elif findImage(now, shopOpened) and currentStep != 4:
+        print("Invalid Screen, MAP, Backing to Main Screen")
+        touch(1243, 38)
+        time.sleep(1)
+        currentStep = 0
+        return True
+    elif findImage(now, shopOpened2) and currentStep != 4:
+        print("Invalid Screen, MAP, Backing to Main Screen")
+        touch(1068, 57)
+        time.sleep(1)
+        currentStep = 0
+        return True
+    else:
+        return False
+    
+    
+
+def detectInvalidStep():
+    global now
+    if checkExist_NOW(now, "Resources\pot.png"):  # todo check pot 100
+        print("Invalid Step")
+        return True
+    elif checkExist_NOW(now, "Resources\pot2.png"):  # todo check pot 100
+        print("Invalid Step")
+        return True
+    elif checkExist_NOW(now, "Resources\pot3.png"):  # offline mode
+        print("Invalid Step")
+        return True
+    elif checkExist_NOW(now, "Resources\pot4.png"):  # offline mode
+        print("Invalid Step")
+        return True
+    elif checkExist_NOW(now, "Resources\pot5.png"):  # offline mode
+        print("Invalid Step")
+        return True
+    elif checkExist_NOW(now, "Resources\pot6.png"):  # offline mode
+        print("Invalid Step")
+        return True
+    else:
+        return False
+    
+def detectMenuIsOpened():
+    global now, currentStep
+    # Rankig icon
+    print("Detecting menu is opened")
+    # Selected Dungeon
+    if countPixelsInPosition_NOW(652,1130,30,20,[184, 184, 185], 1, 10, now):
+        print("Rankig Icon")
+        return True
+    
+    # Trading Post icon
+    if countPixelsInPosition_NOW(650,964,45,35,[184, 184, 185], 1, 20, now):
+        print("Trading Post Icon")
+        return True
+    
+    # Friends icon
+    if countPixelsInPosition_NOW(638,800,40,35,[184, 184, 185], 1, 50, now):
+        print("Friends Icon")
+        return True
+    
+    return False
+
+
+def detectMainScreen():
+    global now
+    if checkExist_NOW(now, "Resources\pot.png"):  # todo check pot 100
+        return True
+    elif checkExist_NOW(now, "Resources\pot2.png"):  # todo check pot 100
+        return True
+    elif checkExist_NOW(now, "Resources\pot3.png"):  # offline mode
+        return True
+    elif checkExist_NOW(now, "Resources\pot4.png"):  # offline mode
+        return True
+    elif checkExist_NOW(now, "Resources\pot5.png"):  # offline mode
+        return True
+    elif checkExist_NOW(now, "Resources\pot6.png"):  # offline mode
+        return True
+    
+def ImEliteDungeon(now):
+    print("Detecting I'm in World Dungeon")
+    # black ton
+    if detectMainScreen() and countPixelsInPosition_NOW(157, 1165, 30, 25, [176, 177, 178], 1, 100, now):
+        print("I'm Elite Dungeon")
+        return True
+    # gray ton
+    elif detectMainScreen() and countPixelsInPosition_NOW(157, 1165, 30, 25, [190, 191, 192], 1, 100, now):
+        print("I'm Elite Dungeon²")
+        return True
+    elif not detectMainScreen():
+        return True
+    else:
+        return False

@@ -190,18 +190,19 @@ def checkEmulatorIsOpen():
         except IOError:
             print("File not exist")
             
-    loopSummoningCircle()
+   # loopSummoningCircle()
     #loopDailyDungeon() # DONE
     #loopTowerOfInsolence()  # DONE
-    loopTempleGuardian() # DONE
-    #loopEliteQuest()
+   # loopTempleGuardian() # DONE
+   
     while True:
         loopLoggin()
         loopScrollQuest()
         loopFarming()
-        time.sleep(1) # maybe not necessary
-    
-
+        loopEliteQuest()
+        loopSummoningCircle()
+        loopTempleGuardian() 
+        time.sleep(3)
 
 def get_img_data(f, maxsize=(1200, 850), first=False):
     """Generate image data using PIL

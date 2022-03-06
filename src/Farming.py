@@ -579,6 +579,10 @@ def detectCurrentStep():
         print("Elite Dungeon Menu")
         currentStep = 3
         return True
+    elif countPixelsInPosition_NOW(605,234,130,55,[129, 236, 255], 1, 50, now, True) or countPixelsInPosition_NOW(605,234,130,55,[178,200,228], 1, 50, now, True):
+        currentStep = 2
+        print("Selected Dungeon")
+        return True
     elif fieldOrElite == 'elite' and currentStep != 4 and findImageByPosition(320,1099,160,78,now, elite2Resource):
         print("Elite Dungeon Menu Selector")
         currentStep = 4   

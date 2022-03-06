@@ -1,4 +1,4 @@
-from .Utils import touch, liveScreen, findImage, find_matches, extractTextFromResize
+from .Utils import findImageByPosition, touch, liveScreen, findImage, find_matches, extractTextFromResize
 from .Utils import swipe, restartL2
 import cv2
 import threading
@@ -11,11 +11,11 @@ die = cv2.imread("Resources\die.png")
 limitBreak = cv2.imread("Resources\Screenshot_20220101-161653.png")
 dungeon1 = cv2.imread("Resources\Screenshot_20220101-155243.png")
 closeDialog = cv2.imread("Resources\summoningCircle.png")
-summoningCircle2 = cv2.imread("Resources\Screenshot_20220101-141049.png")
+summoningCircle2 = cv2.imread("Resources\summoningCircleText.png")
 dungeon = cv2.imread("Resources\Screenshot_20220101-143001.png")
 dungeon2 = cv2.imread("Resources\Screenshot_20220101-150154.png")
 store = cv2.imread("Resources\Screenshot_20220111-002625.png")
-finishedSummoningCircle = 1
+finishedSummoningCircle = 0
 currentStepSummoningCircle = 0
 inExecution = False
 thread = False
@@ -26,17 +26,12 @@ now = False
 def loopSummoningCircle():
     global thread, jumpsC, jumps
     if thread != False and thread.isAlive():
-        if jumpsC == jumps:
-            thread.cancel()
-            thread = False
-            jumpsC = 0
-        else:
-            jumpsC += 1
+        thread.join()   
         
-    thread = threading.Timer(12.0, loopSummoningCircle)
+    thread = threading.Timer(8.0, doSummoningCircle)
     thread.daemon = True # stop if the program exits
+    thread.setName("Summoning Circle Thread")
     thread.start()
-    doSummoningCircle()
 
 
 def doSummoningCircle():
@@ -116,6 +111,8 @@ def checkStep():
     elif currentStepSummoningCircle == 5:  # wait to done
         print("Step 5")
         step05()
+    elif currentStepSummoningCircle == '?':  
+        print("Invalid Step")
 
 
 def step00():
@@ -135,7 +132,7 @@ def step03():
     global currentStepSummoningCircle
     if detectAreInEnd():
         print("DEVERIAMOS CLICAR AQUI")
-        #touch(1200, 377)  # touch in dungeon
+        touch(850, 346)
         currentStepSummoningCircle = 4  # ready to touch in Temple Guardian
         return True
     else:
@@ -197,7 +194,8 @@ def detectCurrentStep():
         touch(39,37)
         currentStepSummoningCircle = 3  
         return True
-    elif findImage(now, summoningCircle2) : # I'm Normal Dungeon
+    elif findImageByPosition(165,686,300,400,now,summoningCircle2) : # I'm Normal Dungeon
+        print("set Dungeons")
         currentStepSummoningCircle = 3     
         return True
     elif findImage(now, dungeon) : # I'm Dungeon Screen
@@ -225,9 +223,10 @@ def detectCurrentStep():
         print("Invalid Screen, Backing to Main Screen")
         touch(1243, 38)
         time.sleep(1)
-        currentStep = 0
+        currentStepSummoningCircle = 0
         return True
     else:
+        currentStepSummoningCircle == '?'
         return False
 
 def markLikeDone():
@@ -243,16 +242,7 @@ def markLikeDone():
 
 def detectAreInEnd():
     global currentStepSummoningCircle,now, summoningCircle2
-    top = 166 
-    right = 719
-    width = 260
-    height = 515
-    crop_img = now[top : (top + height) , right: (right + width)]
-
-    if findImage(crop_img, summoningCircle2) :
-        print("Opening Sumonning Circle 2 ....")
-        touch(850, 346)
-        currentStepSummoningCircle = 3
+    if findImageByPosition(165,686,300,400,now,summoningCircle2):
         return True
   
     return False

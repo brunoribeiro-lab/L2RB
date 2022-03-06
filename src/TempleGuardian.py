@@ -1,4 +1,4 @@
-from .Utils import extractText, extractTextFromResize, liveScreen, touch
+from .Utils import extractText, findImageByPosition, extractTextFromResize, liveScreen, touch
 from .Utils import swipe, restartL2
 from .Utils import findImage
 import cv2
@@ -16,9 +16,9 @@ closeDialog = cv2.imread("Resources\Screenshot_20220101-183441.png")
 summoningCircle2 = cv2.imread("Resources\Screenshot_20220101-141049.png")
 dungeon = cv2.imread("Resources\Screenshot_20220101-143001.png")
 dungeon2 = cv2.imread("Resources\Screenshot_20220101-150154.png")
-
+templeGuardianResource = cv2.imread("Resources\TempleGuardianResource1.png")
 # working
-finishedTempleGuardian = 1
+finishedTempleGuardian = 0
 currentStepTempleGuardian = 0 # done this
 inExecution = 0
 thread = False
@@ -31,18 +31,12 @@ def loopTempleGuardian():
     global thread, jumpsC, jumps
     # olha isso douglas
     if thread != False and thread.isAlive():
-        if jumpsC == jumps:
-            thread.cancel()
-            thread = False
-            jumpsC = 0
-        else:
-            jumpsC += 1
-            time.sleep(5)
+        thread.join()   
         
-    thread = threading.Timer(12.0, loopTempleGuardian)
+    thread = threading.Timer(8.0, doTempleGuardian)
     thread.daemon = True # stop if the program exits
+    thread.setName("Temple Guardian Thread")
     thread.start()
-    doTempleGuardian()
 
 
 def doTempleGuardian():
@@ -111,7 +105,9 @@ def checkStep():
         step04()
     elif currentStepTempleGuardian == 5:  # wait to done
         print("Step 5")
-        step05()
+        step05() 
+    elif currentStepTempleGuardian == '?':  # wait to done
+        print("Invalid Step")
 
 
 def step00():
@@ -127,6 +123,7 @@ def step02():
 def step03():
     global currentStepTempleGuardian
     if detectAreInEnd():
+        touch(77, 346)
         currentStepTempleGuardian = 4  # ready to touch in Temple Guardian
         return True
     else:
@@ -205,17 +202,9 @@ def markLikeDone():
 
 
 def detectAreInEnd():
-    global currentStepTempleGuardian,now, summoningCircle2
-    top = 166 
-    right = 719
-    width = 260
-    height = 515
-    crop_img = now[top : (top + height) , right: (right + width)]
-
-    if findImage(crop_img, summoningCircle2) :
+    global currentStepTempleGuardian,now, templeGuardianResource
+    if findImageByPosition(166,8,300,400,now, templeGuardianResource) :
         print("Opening Temple Guardian ....")
-        touch(77, 346)
-        currentStepTempleGuardian = 3
         return True
   
     return False
@@ -315,7 +304,7 @@ def countPixelsInPosition(top, right, width, height, color, min, max, Print = Fa
 
 def detectCurrentStep():
     from .loginL2 import text  # extracted text
-    global dungeon1,limitBreak, now, currentStepTempleGuardian, summoningCircle2, dungeon, dungeon2
+    global dungeon1,limitBreak, now, currentStepTempleGuardian, templeGuardianResource, summoningCircle2, dungeon, dungeon2
     if findImage(now, dungeon1) : # I'm Normal Dungeon ?
         currentStepTempleGuardian = 3
         return True
@@ -323,7 +312,7 @@ def detectCurrentStep():
         touch(39,37)
         currentStepTempleGuardian = 3  
         return True
-    elif findImage(now, summoningCircle2) : # I'm Normal Dungeon
+    elif findImageByPosition(166,8,300,400,now, templeGuardianResource) : # I'm Normal Dungeon
         currentStepTempleGuardian = 3     
         return True
     elif findImage(now, dungeon) : # I'm Dungeon Screen
