@@ -599,9 +599,10 @@ def countPixelsInPosition(top, right, width, height, color, min, max, Print = Fa
     else:
         return False
 def countPixelsInPosition_NOW(top, right, width, height, color, min, max, now, Print = False):
-    if now is None:
+    if now is None or now is bool:
         time.sleep(3)  # skip to next thread execution
         return False
+    
     crop_img = now[top: (top + height), right: (right + width)]
     imm = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
     result = np.count_nonzero(np.all(imm == color, axis=2))

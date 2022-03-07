@@ -18,7 +18,7 @@ dungeon = cv2.imread("Resources\Screenshot_20220101-143001.png")
 dungeon2 = cv2.imread("Resources\Screenshot_20220101-150154.png")
 templeGuardianResource = cv2.imread("Resources\TempleGuardianResource1.png")
 # working
-finishedTempleGuardian = 0
+finishedTempleGuardian = 1
 currentStepTempleGuardian = 0 # done this
 inExecution = 0
 thread = False

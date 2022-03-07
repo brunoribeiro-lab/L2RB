@@ -74,16 +74,11 @@ def doEliteQuests():
                 
         assert not isinstance(now, type(None)), 'image not found'
         Try = 0
-        if finished > 5:
-            # temos que verificar se acabou tudo
-            if getAutoClearAll():
-                claimAll()
-                touch(1243, 39)  # back to main screen
-                return True
+        if finished > 5 and getAutoClearAll():
+            claimAll()
+            touch(1243, 39)  # back to main screen
+            return True
 
-            return False
-
-    
         print("Current Dungeon : " + str(finished))
         # now = datetime.now()
        #print(str(now.strftime("%H:%M:%S")))
@@ -128,31 +123,6 @@ def checkStep():
     elif currentStep == 7:  # start quest
         print("Step 7")
         step07()
-    elif currentStep == 8:  # start quest
-        print("Step 8")
-        step08()
-
-
-def checkCompleted():
-    global finished
-    global currentStep
-    from .loginL2 import text  # extracted text
-    if text.find('Complete Count 10/10') > 0:
-        finished = 10
-        currentStep = 1
-        touch(1014, 173)
-        return True
-    elif text.find('Count 10/10') > 0:
-        finished = 10
-        currentStep = 1
-        touch(1014, 173)
-        return True
-    elif text.find('Recharge') > 0:
-        finished = 10
-        currentStep = 1
-        touch(1014, 173)
-        return True
-
 
 def checkDie():
     global currentStep, now, die
@@ -238,25 +208,49 @@ def step04():
         #touch(325, 179)
         currentStep = 5  # select the dungeon
         return False
+    elif getAutoClearAll():
+        return claimAll()
     else:
         currentStep = 4  # swipe again
         swipe(320, 129, 320, 655, 0.5)  # swipe to top
         time.sleep(3)
         liveScreen()
         time.sleep(2)
+        if os.path.isfile('now.png') == True:
+            now = cv2.imread("now.png")
 
 
 def step05():
     global currentStep, finished
-    autoDetectDone()
+    #autoDetectDone()
     if finished == 1:
         touch(325, 179)
+        time.sleep(2)
+        liveScreen()
+        time.sleep(2)
+        if os.path.isfile('now.png') == True:
+            now = cv2.imread("now.png")
     elif finished == 2:
         touch(336, 323)
+        time.sleep(2)
+        liveScreen()
+        time.sleep(2)
+        if os.path.isfile('now.png') == True:
+            now = cv2.imread("now.png")
     elif finished == 3:
         touch(325, 457)
+        time.sleep(2)
+        liveScreen()
+        time.sleep(2)
+        if os.path.isfile('now.png') == True:
+            now = cv2.imread("now.png")
     elif finished == 4:
         touch(334, 583)
+        time.sleep(2)
+        liveScreen()
+        time.sleep(2)
+        if os.path.isfile('now.png') == True:
+            now = cv2.imread("now.png")
     elif finished == 5:
         if getAutoClearAll():
             return claimAll()
@@ -275,9 +269,15 @@ def step05():
     print("Selected : " + str(getSelected))
     print("Finished : " + str(finished))
     if getSelected == finished:
-        currentStep = 6
-        time.sleep(4)
-        return True
+        if checkDOungeonCompleted():
+            print("This dungeon is completed, step to next")
+            finished = getSelected + 1
+            currentStep = 4
+            return True
+        else:
+            currentStep = 6
+            time.sleep(4)
+            return True
     else:
         currentStep = 4 # back to previous step, and select first dungeon
         return False
@@ -305,14 +305,10 @@ def step06():
     global finished
     if getAutoClearAll():
         return claimAll()
-    elif checkDOungeonCompleted():
-        touch(1113, 656)  # enter in dungeon
-        time.sleep(5)
-        currentStep = 7
-    else:
-        finished += 1
-        currentStep = 5
-
+    
+    touch(1113, 656)  # enter in dungeon
+    time.sleep(5)
+    currentStep = 7
 
 def step07():
     global currentStep, defaultPosition, DungeonDialogPositionToTouch
@@ -343,43 +339,6 @@ def step07():
         print("waiting elite quest progress")
         return False
 
-
-def step08():
-    global currentStep
-    global finished
-    from .loginL2 import text  # extracted text
-    if text.find('[Conquest]') > 0:
-        startOrClaim(text)
-        return False
-    elif text.find('[Season]') > 0:
-        startOrClaim(text)
-        return False
-    elif text.find('[Dungeon]') > 0:
-        print("This is finished")
-        #finished += 1
-        #currentStep = 5
-    else:
-        finished += 1
-        currentStep = 5
-        touch(861, 88)  # touch in leave
-        time.sleep(2)
-
-
-def startOrClaim(text):
-    if text.find('(20/20)') > 0:
-        successClaim()
-    elif text.find('(30/30)') > 0:
-        successClaim()
-    elif text.find('(2/2)') > 0:
-        successClaim()
-    elif text.find('(1/1)') > 0:
-        successClaim()
-    elif text.find('(40/40)') > 0:
-        successClaim()
-    else:
-        touch(114, 338)  # start quest
-
-
 def successClaim():
     global finished
     global currentStep
@@ -395,89 +354,54 @@ def successClaim():
 
 
 def checkDOungeonCompleted():
-    from .loginL2 import now  # extracted text
-    if now is None:
-        time.sleep(7)  # skip to next thread execution
-        return 'NO'
-    top = 530
-    right = 950
-    height = 60
-    width = 80
-    crop_img = now[top: (top + height), right: (right + width)]
-    sought = [49, 76, 106]
-    imm = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
-    result = np.count_nonzero(np.all(imm == sought, axis=2))
-    if result > 200:
+    global now
+    if countPixelsInPosition_NOW(526,944,300,60,[26,32,43],17000,20000, now):
         return True
-    else:
+    
+    # white color from text button
+    """if countPixelsInPosition_NOW(526,944,300,60,[255,255,255],100,500, now):
+        return False"""
+    # pink color from red diamond
+    if countPixelsInPosition_NOW(526,944,300,60,[246,109,181],1,100, now):
         return False
+     # light pink color from red diamond
+    if countPixelsInPosition_NOW(526,944,300,60,[254,191,224],1,100, now):
+        return False
+    # green color from button, is all completed
+    if countPixelsInPosition_NOW(526,944,300,60,[51,105,72],1,500, now):
+         claimAll()
+         touch(1243, 39)  # back to main screen
+    
+    return True
 
 
 def getSelectedDungeon():
     global now, required16_2  # extracted text
-    if checkExist("Resources\dungeon1.png") or findImageByPosition(100, 27, 250, 150, now, required16_2):
+    if countPixelsInPosition_NOW(113,38,300,10,[99,150,217],1, 500, now, True) :
         print("Selected Elven Ruins 1")
         return 1
     
-    if checkExist("Resources\dungeon2.png") == True:
+    if countPixelsInPosition_NOW(250,38,300,10,[99,150,217],1,500,now,True) :
         print("Selected Elven Ruins 2")
         return 2
 
-    if checkExist("Resources\dungeon3.png") == True:
+    if countPixelsInPosition_NOW(385,38,300,10,[99,150,217],1,500,now,True) :
         print("Selected Ant Nest 1")
         return 3
 
-    if checkExist("Resources\dungeon4.png") == True:
+    if countPixelsInPosition_NOW(522,38,300,10,[99,150,217],1,500,now,True) :
         print("Selected Ant Nest 2")
         return 4
 
-    if checkExist("Resources\dungeon5.png") == True:
+    if countPixelsInPosition_NOW(658,38,300,10,[99,150,217],1,500,now,True) :
         print("Selected Cruma Tower 2F")
         return 5
 
     print("Elite not found")
     return 0
 
-
-def getSelectedDungeon2():
-    from .loginL2 import now  # extracted text
-    if now is None:
-        time.sleep(7)  # skip to next thread execution
-        return 0
-    top = 138
-    right = 615
-    height = 160
-    width = 600
-    im = now[top: (top + height), right: (right + width)]
-    text = pytesseract.image_to_string(im, lang='eng')
-    print(text)
-   # print(text)
-    if (text.find('Elven Ruins 1') > 0 or text.find('Recommended cP 11,600') > 0 or text.find('Recommended CP 11.600') > 0 or text.find('Recommended CP 11,600') > 0 or text.find('Aplace filled with magic') > 0 or text.find('this is the academy where Elves taught magic') > 0):
-        print("Selectd Elven Ruins 1")
-        return 1
-    if ((text.find('Elven Ruins 2') > 0) or (text.find('Elven Ruins2') > 0) or (text.find('Recommended CP 26.700')) or (text.find('Recommended CP 26,700') > 0) or (text.find('Recommended cP 26,700') > 0)):
-        print("Selectd Elven Ruins 2")
-        return 2
-    if (text.find('Ant Nest 1') > 0 or text.find('Recommended CP 186.500') or text.find('Recommended CP 186,500') > 0 or text.find('Recommended cP 186,500') > 0 or text.find('filled with Giant Ant') > 0 or text.find('created by the gigantic dar') > 0):
-        print("Selectd Ant Nest 1")
-        return 3
-    if (text.find('Ant Nest 2') > 0 or text.find('Recommended CP 407.700') > 0 or text.find('Recommended CP 407,700') > 0 or text.find('Recommended cP 407,700') > 0 or text.find('The ants created an even') > 0 or text.find('complicated maze here to protect their') > 0):
-        print("Selectd Ant Nest 2")
-        return 4
-    if (text.find('Cruma Tower 2F') > 0 or text.find('Recommended CP 650.900') > 0 or text.find('Recommended CP 650,900') > 0 or text.find('Recommended cP 650,900') > 0 or text.find('Amoving fortress and science facility') > 0 or text.find('used by ancient giants') > 0):
-        print("Selectd Cruma Tower 2F")
-        return 5
-
-    print("Elite not found")
-    return 0
-
-
 def getDoingStatus():
-    global DungeonDialogPosition, defaultPosition
-    from .loginL2 import now  # extracted text
-    if now is None:
-        time.sleep(7)  # skip to next thread execution
-        return False
+    global DungeonDialogPosition, defaultPosition, now
 
     top = 290  # DungeonDialogPosition[defaultPosition][0]
     right = 0  # DungeonDialogPosition[defaultPosition][1]
@@ -517,56 +441,11 @@ def getDoneStatus():
 
 
 def getAutoClearAll():
-    from .loginL2 import now  # extracted text
-    global finished
-    if now is None:
-        time.sleep(7)  # skip to next thread execution
+    global finished, now
+    if countPixelsInPosition_NOW(629,630,350,60,[124,139,158],70,100,now) > 0:
         return False
-
-    top = 628
-    right = 622
-    height = 60
-    width = 363
-    crop_img = now[top: (top + height), right: (right + width)]
-    text = pytesseract.image_to_string(crop_img, lang='eng')
-    #print("Text from auto-clear")
-    # print(text)
-    # print(text.find("Free"))
-    #print(text.find("Auto-Clear All"))
-
-    if text.find("Until Free Auto-Clear All") > 0:  # UntilFree Auto-Clear All MM = 1/5
-        return False
-    elif text.find("Until Free Auto-Clear") > 0:
-        return False
-    elif text.find("Clear All") > 0 and text.find("Free") <= 0:
-        print("CAiu")
-        return True
-    elif text.find("UntilFree Auto-Clear") > 0:
-        return False
-    elif text.find("0/5") > 0:
-        return False
-    elif text.find("1/5") > 0:
-        finished = 1
-        return False
-    elif text.find("2/5") > 0:
-        finished = 2
-        return False
-    elif text.find("3/5") > 0:
-        finished = 3
-        return False
-    elif text.find("4/5") > 0:
-        finished = 4
-        return False
-    elif text.find("5/5") > 0:
-        finished = 5
-        return True
-    elif text.find("6/5") > 0:
-        return True
-    elif text.find("7/5") > 0:
-        return True
     else:
-        time.sleep(4)
-        return False
+        return True
 
 
 def claimAll():
