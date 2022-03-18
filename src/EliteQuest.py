@@ -30,7 +30,8 @@ elite4Resource = cv2.imread("Resources\Screenshot_20220228-203657.png")
 store = cv2.imread("Resources\Screenshot_20220111-002625.png")
 shopOpened = cv2.imread("Resources\Screenshot_20220111-002625.png")
 shopOpened2 = cv2.imread("Resources\Screenshot_20220111-021906.png")
-
+invalid1Resource = cv2.imread("Resources\Screenshot_20220307-135104.png")
+invalid2Resource = cv2.imread("Resources\Screenshot_20220306-142327.png")
 required16 = cv2.imread("Resources\elvenRuins1.png")
 required16_2 = cv2.imread("Resources\elvenRuins2.png")
 die = cv2.imread("Resources\die.png")
@@ -194,7 +195,7 @@ def step03():
             now = cv2.imread("now.png")
     else:
         print("Swipe to start")
-        swipe(320, 655, 320, 455, 0.5)  # swipe a little bit to down
+        swipe(40, 420, 800, 420, 0.5)  # swipe a little bit to down
         time.sleep(4)
         liveScreen()
         time.sleep(2)
@@ -355,6 +356,10 @@ def successClaim():
 
 def checkDOungeonCompleted():
     global now
+    # auto complete color
+    if countPixelsInPosition_NOW(526,944,300,60,[222,198,140],1,100, now):
+        return False
+    
     if countPixelsInPosition_NOW(526,944,300,60,[26,32,43],17000,20000, now):
         return True
     
@@ -466,11 +471,20 @@ def claimAll():
     return False
 
 def detectInvalidScreen():
-    global now, mapOpened
+    global now,currentStep, mapOpened, invalid1Resource, invalid2Resource
     # check map is opened for any reason
     if countPixelsInPosition_NOW(660, 1015, 200, 50, [52, 83, 112], 300, 1000, now):
         print("Closing Map")
         touch(1243, 38)  # touch in back
+        return True
+    
+    if findImage(now, invalid1Resource) : # I'm Normal Dungeon ?
+        currentStep = 0
+        touch(1247,40)
+        return True
+    if findImage(now, invalid2Resource) : # I'm Normal Dungeon ?
+        currentStep = 3
+        touch(40,38)
         return True
     
 
@@ -484,7 +498,7 @@ def detectCurrentStep():
          currentStep = 1
          print("Change to step 1")
          return True
-    elif countPixelsInPosition_NOW(605,234,130,55,[129, 236, 255], 1, 50, now, True) or countPixelsInPosition_NOW(605,234,130,55,[178,200,228], 1, 50, now, True):
+    elif countPixelsInPosition_NOW(605,234,130,55,[129, 236, 255], 1, 50, now) or countPixelsInPosition_NOW(605,234,130,55,[178,200,228], 1, 50, now)  or countPixelsInPosition_NOW(605,234,130,55,[128,233,255], 1, 50, now) or countPixelsInPosition_NOW(493,146,20,30,[184,16,36], 1, 50, now):
         currentStep = 2
         print("Selected Dungeon")
         return True

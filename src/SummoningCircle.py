@@ -1,4 +1,4 @@
-from .Utils import findImageByPosition, touch, liveScreen, findImage, find_matches, extractTextFromResize
+from .Utils import countPixelsInPosition_NOW, findImageByPosition, touch, liveScreen, findImage, find_matches, extractTextFromResize
 from .Utils import swipe, restartL2
 import cv2
 import threading
@@ -15,6 +15,9 @@ summoningCircle2 = cv2.imread("Resources\summoningCircleText.png")
 dungeon = cv2.imread("Resources\Screenshot_20220101-143001.png")
 dungeon2 = cv2.imread("Resources\Screenshot_20220101-150154.png")
 store = cv2.imread("Resources\Screenshot_20220111-002625.png")
+invalid1Resource = cv2.imread("Resources\Screenshot_20220307-135104.png")
+invalid2Resource = cv2.imread("Resources\Screenshot_20220306-142327.png")
+
 finishedSummoningCircle = 1
 currentStepSummoningCircle = 0
 inExecution = False
@@ -22,7 +25,9 @@ thread = False
 jumps = 1
 jumpsC = 0
 now = False
-# tem um bug nessa porra, qndo ja fez, faz de novo e gasta reds -.-
+# 2 bugs
+# verificar telas invalidas
+# verificar se tem tons vermelhos para n repetir e gastar os reds
 def loopSummoningCircle():
     global thread, jumpsC, jumps
     if thread != False and thread.isAlive():
@@ -90,6 +95,7 @@ def revival():
     touch(1153, 530)  # tap in spot revival
 
 def checkStep():
+    invalidStep()
     detectCurrentStep()
     global currentStepSummoningCircle
     print("Sumonning Circle : Checking Steps " + str(currentStepSummoningCircle))  # verificar qual passo esta baseado em prints
@@ -119,14 +125,25 @@ def step00():
     global currentStepSummoningCircle
     if detectInvalidStep():
         touch(923, 30)  # touch(235, 400)
+        
 
 def step01():
-    global currentStepSummoningCircle
+    global currentStepSummoningCircle, now
     touch(300, 659)  # touch in dungeon
+    time.sleep(2)
+    liveScreen()
+    time.sleep(2)
+    if os.path.isfile('now.png') == True:
+        now = cv2.imread("now.png")
 
 def step02():
-    global currentStepSummoningCircle, dungeon
+    global currentStepSummoningCircle, dungeon, now
     touch(120, 515)  # touch in Normal Dungeon
+    time.sleep(2)
+    liveScreen()
+    time.sleep(2)
+    if os.path.isfile('now.png') == True:
+        now = cv2.imread("now.png")
 
 def step03():
     global currentStepSummoningCircle
@@ -145,7 +162,7 @@ def step04():
     global finishedSummoningCircle
     # final quest
     checkAlreadyDone = findImage(now, alreadyDone)
-    if checkAlreadyDone:
+    if checkAlreadyDone or countPixelsInPosition_NOW(622,1086,80,60,[246,109,181],1,100,now):
         print("Already FInished")
         currentStepSummoningCircle = 0  # reset steps
         finishedSummoningCircle = 1  # run to NPC
@@ -183,6 +200,19 @@ def step05():
     elif(text.find('See Details') > 0):
         markLikeDone()
         return True
+
+def invalidStep():
+    global invalid1Resource, invalid2Resource, currentStepSummoningCircle
+    if findImage(now, invalid1Resource) : # I'm Normal Dungeon ?
+        currentStepSummoningCircle = 0
+        touch(1247,40)
+        return True
+    if findImage(now, invalid2Resource) : # I'm Normal Dungeon ?
+        currentStepSummoningCircle = 3
+        touch(40,38)
+        return True
+    
+    return False
 
 def detectCurrentStep():
     from .loginL2 import text  # extracted text

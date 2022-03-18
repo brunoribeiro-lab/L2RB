@@ -76,11 +76,16 @@ def loopLoggin():
 def mainThread():
     global  logged, Try, now, jumpsC , jumpsC, lnow
     if not process_exists(emulators[currentEmulator][0]):
+        SW_MINIMIZE = 6
+        info = subprocess.STARTUPINFO()
+        info.dwFlags = subprocess.STARTF_USESHOWWINDOW
+        info.wShowWindow = SW_MINIMIZE
         print("Emulator not running, starting : " + emulators[currentEmulator][1])
         logged = 0
         try:
-            subprocess.Popen([emulators[currentEmulator][1],emulators[currentEmulator][2]])
+            subprocess.Popen([emulators[currentEmulator][1],emulators[currentEmulator][2]], startupinfo=info)
             time.sleep(10)
+            
         except WindowsError:
             print("Cant Start " + emulators[currentEmulator][1])
             # [Error 22] No application is associated with the specified

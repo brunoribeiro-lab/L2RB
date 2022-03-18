@@ -216,7 +216,7 @@ def step02():
     if fieldOrElite == "WD":
         if detectDungeonMenuIsOpened():
             print("Touch in World Dungeon")
-            touch(988, 521)  # touch in World Dungeon
+            touch(1000, 521)  # touch in World Dungeon
             time.sleep(2)
             liveScreen()
             time.sleep(2)
@@ -226,7 +226,7 @@ def step02():
         else:
             print("Aqui deveria da merda 314")
     elif fieldOrElite == "elite":
-        touch(120, 517)  # touch in Normal Dungeon
+        touch(278, 524)  # touch in Normal Dungeon
         currentStep = 3
         time.sleep(3)
         liveScreen()
@@ -579,7 +579,7 @@ def detectCurrentStep():
         print("Elite Dungeon Menu")
         currentStep = 3
         return True
-    elif countPixelsInPosition_NOW(605,234,130,55,[129, 236, 255], 1, 50, now, True) or countPixelsInPosition_NOW(605,234,130,55,[178,200,228], 1, 50, now, True):
+    elif countPixelsInPosition_NOW(605,234,130,55,[129, 236, 255], 1, 50, now) or countPixelsInPosition_NOW(605,234,130,55,[178,200,228], 1, 50, now) or countPixelsInPosition_NOW(605,234,130,55,[128,233,255], 1, 50, now):
         currentStep = 2
         print("Selected Dungeon")
         return True
@@ -588,6 +588,7 @@ def detectCurrentStep():
         currentStep = 4   
         return True
     elif detectMenuIsOpened() and currentStep != 2:
+        print("Auto detect menu")
         return True
     elif currentStep == 5 and fieldOrElite == 'WD' and not ImWorldDungeon():
         currentStep = 0
@@ -673,21 +674,38 @@ def detectDungeonMenuIsOpened():
     global now, currentStep
     print("Detecting dungeon menu is opened")
     # World Raid icon
-    if countPixelsInPosition_NOW(502,794,10,20,[12, 12, 20], 1, 10, now, True) and countPixelsInPosition_NOW(502,794,10,20,[208, 208, 210], 1, 10, now, True):
+    if countPixelsInPosition_NOW(510,990,10,20,[195,196,197], 1, 100, now, True):
         currentStep = 2
         print("World Raid Icon")
         return True
     
     # normal dungeon icon
-    if countPixelsInPosition_NOW(516,100,30,20,[187, 187, 189], 1, 20, now, True):
+    if countPixelsInPosition_NOW(510,264,30,20,[195,196,197], 1, 100, now, True):
         currentStep = 2
         print("Normal Dungeon Icon")
         return True
     
     # Temporal Rift icon
-    if countPixelsInPosition_NOW(518,274,30,20,[184, 184, 185], 1, 20, now, True):
+    if countPixelsInPosition_NOW(513,412,30,20,[195,196,197], 1, 100, now, True):
         currentStep = 2
         print("Temporal Rift Icon")
+        return True
+    
+    if countPixelsInPosition_NOW(510,990,10,20,[187,187,187], 1, 100, now, True):
+        currentStep = 2
+        print("World Raid Icon2")
+        return True
+    
+    # normal dungeon icon
+    if countPixelsInPosition_NOW(510,264,30,20,[187,187,187], 1, 100, now, True):
+        currentStep = 2
+        print("Normal Dungeon Icon2")
+        return True
+    
+    # Temporal Rift icon
+    if countPixelsInPosition_NOW(513,412,30,20,[187,187,187], 1, 100, now, True):
+        currentStep = 2
+        print("Temporal Rift Icon2")
         return True
     
     return False
@@ -696,19 +714,19 @@ def detectMenuIsOpened():
     global now, currentStep
     # Rankig icon
     print("Detecting menu is opened")
-    if countPixelsInPosition_NOW(652,1130,30,20,[184, 184, 185], 1, 10, now, True):
+    if countPixelsInPosition_NOW(645,1053,30,20,[187,187,187], 1, 50, now, True):
         currentStep = 1
         print("Rankig Icon")
         return True
     
     # Trading Post icon
-    if countPixelsInPosition_NOW(650,964,45,35,[184, 184, 185], 1, 20, now, True):
+    if countPixelsInPosition_NOW(650,928,45,35,[187,187,187], 1, 50, now, True):
         currentStep = 1
         print("Trading Post Icon")
         return True
     
     # Friends icon
-    if countPixelsInPosition_NOW(638,800,40,35,[184, 184, 185], 1, 50, now, True):
+    if countPixelsInPosition_NOW(630,774,40,35,[187,187,187], 1, 50, now, True):
         currentStep = 1
         print("Friends Icon")
         return True

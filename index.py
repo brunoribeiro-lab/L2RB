@@ -37,6 +37,7 @@ from src.Utils import swipe
 from src.loginL2 import openL2
 from src.Utils import liveScreen
 from src.loginL2 import loopLoggin
+from src.CheckFrozen import FrozenThread
 from src.Utils import restart
 from src.Comissions import loopComissions
 from src.Utils import touch
@@ -197,11 +198,12 @@ def checkEmulatorIsOpen():
    
     while True:
         loopLoggin()
-        loopScrollQuest()
-        loopFarming()
-        loopEliteQuest()
-        loopSummoningCircle()
-        loopTempleGuardian() 
+        loopScrollQuest() # done
+        loopFarming() # done
+        loopEliteQuest() 
+        loopSummoningCircle() # done
+        loopTempleGuardian()  # done
+        FrozenThread() # IN OBSERVATION
         time.sleep(3)
 
 def get_img_data(f, maxsize=(1200, 850), first=False):
