@@ -131,13 +131,7 @@ def checkStep():
 
 
 def checkDie():
-    global die, currentStep, lastFieldSpot, inventory, lastDied, farming, spotLocation, spotFieldLocation, fieldOrElite, backing, lastCheck
-    from .loginL2 import now  # current now
-    from .loginL2 import text  # extracted text
-    if now is None:
-        return False
-    
-    assert not isinstance(now, type(None)), 'image not found'
+    global die, now, currentStep, lastFieldSpot, inventory, lastDied, farming, spotLocation, spotFieldLocation, fieldOrElite, backing, lastCheck
     # if detectImElite() == False:
     #    farming = 0
     #    backing = 1
@@ -474,9 +468,12 @@ def moveToAnyDirection():
 def smarthDetectImFarming():
     # from .loginL2 import now, text  # extracted text
     global fieldOrElite, life, now
-    if fieldOrElite == "WD" and detectMainScreen() and countPixelsInPosition_NOW(67, 506, 250, 20, [184, 15, 15], 100, 10000, now, True):
-        print("Farming in World Dungeon")
-        return True
+    
+    # World Dungeon famring mode
+    if fieldOrElite == "WD" and detectMainScreen():
+        if  countPixelsInPosition_NOW(152, 1100, 250, 20, [184, 15, 15], 100, 10000, now, True):
+            print("Farming in World Dungeon")
+            return True
     
     if fieldOrElite == "field" and detectMainScreen() and countPixelsInPosition_NOW(67, 506, 250, 20, [184, 15, 15], 100, 10000, now, True):
         print("Farming in World Dungeon")
@@ -508,16 +505,31 @@ def detectImNotInDungeon():
 def ImWorldDungeon():
     global currentStep, now
     print("Detecting I'm in World Dungeon")
-    # black ton
-    if detectMainScreen() and countPixelsInPosition_NOW(142, 1102, 21, 27, [185, 186, 186], 1, 100, now, True):
-        print("I'm not World Dungeon")
-        return False
-    # gray ton
-    elif detectMainScreen() and countPixelsInPosition_NOW(142, 1102, 21, 27, [190, 191, 192], 1, 100, now, True):
-        print("I'm not in World Dungeon²")
-        return False
-    else:
-        return True
+    if detectMainScreen():
+        # gray ton in world boss icon top right
+        if countPixelsInPosition_NOW(152, 1100, 30, 20, [185, 185, 186], 1, 100, now,True):
+            print("I'm not World Dungeon")
+            return False
+        # gray ton in world boss icon top right
+        if countPixelsInPosition_NOW(152, 1100, 30, 20, [190, 190, 187], 1, 100, now,True):
+            print("I'm not in World Dungeon²")
+            return False
+        
+        # black ton in world boss icon top right
+        if countPixelsInPosition_NOW(152, 1100, 30, 20, [19, 24, 32], 10, 50, now,True):
+            print("I'm not in World Dungeon³")
+            return False
+        
+        # black ton in magnadin icon top right
+        if countPixelsInPosition_NOW(144, 1236, 30, 20, [195, 195,197], 1, 50, now,True):
+            print("I'm not in World Dungeon¹.")
+            return False
+         # black ton in magnadin icon top right
+        if countPixelsInPosition_NOW(144, 1236, 30, 20, [17, 15, 31], 1, 50, now,True):
+            print("I'm not in World Dungeon².")
+            return False
+    
+    return True
 
 def ImEliteDungeon():
     global currentStep, now
@@ -673,8 +685,14 @@ def detectInvalidScreen():
 def detectDungeonMenuIsOpened():
     global now, currentStep
     print("Detecting dungeon menu is opened")
+    # Normal Dungeon Alert red circle
+    if countPixelsInPosition_NOW(500,330,10,10,[186, 16, 37], 1, 50, now):
+        currentStep = 2
+        print("Dungeon Alert")
+        return True
+    
     # World Raid icon
-    if countPixelsInPosition_NOW(510,990,10,20,[195,196,197], 1, 100, now, True):
+    if countPixelsInPosition_NOW(510,990,10,20,[195,196,197], 1, 100, now) or countPixelsInPosition_NOW(510,990,10,20,[225,224,222], 1, 100, now):
         currentStep = 2
         print("World Raid Icon")
         return True
@@ -686,27 +704,28 @@ def detectDungeonMenuIsOpened():
         return True
     
     # Temporal Rift icon
-    if countPixelsInPosition_NOW(513,412,30,20,[195,196,197], 1, 100, now, True):
+    if countPixelsInPosition_NOW(513,412,30,20,[195,196,197], 1, 100, now):
         currentStep = 2
         print("Temporal Rift Icon")
         return True
     
-    if countPixelsInPosition_NOW(510,990,10,20,[187,187,187], 1, 100, now, True):
+    if countPixelsInPosition_NOW(510,990,10,20,[187,187,187], 1, 100, now):
         currentStep = 2
         print("World Raid Icon2")
         return True
     
     # normal dungeon icon
-    if countPixelsInPosition_NOW(510,264,30,20,[187,187,187], 1, 100, now, True):
+    if countPixelsInPosition_NOW(510,264,30,20,[187,187,187], 1, 100, now):
         currentStep = 2
         print("Normal Dungeon Icon2")
         return True
     
     # Temporal Rift icon
-    if countPixelsInPosition_NOW(513,412,30,20,[187,187,187], 1, 100, now, True):
+    if countPixelsInPosition_NOW(513,412,30,20,[187,187,187], 1, 100, now):
         currentStep = 2
         print("Temporal Rift Icon2")
         return True
+    
     
     return False
 
@@ -714,19 +733,49 @@ def detectMenuIsOpened():
     global now, currentStep
     # Rankig icon
     print("Detecting menu is opened")
-    if countPixelsInPosition_NOW(645,1053,30,20,[187,187,187], 1, 50, now, True):
+    # Dungeon icon red ball alert
+    if countPixelsInPosition_NOW(622,405,10,10,[186, 16, 37], 10, 50, now):
+        currentStep = 1
+        print("Dungeon Alert Circle")
+        return True
+    
+    # Dungeon icon red ball alert
+    if countPixelsInPosition_NOW(620,550,10,10,[186, 16, 37], 10, 50, now):
+        currentStep = 1
+        print("Batlefield Alert Circle")
+        return True
+    
+    # Batlefield icon red ball alert
+    if countPixelsInPosition_NOW(620,550,10,10,[186, 16, 37], 10, 50, now):
+        currentStep = 1
+        print("Batlefield Alert Circle")
+        return True
+    
+    # clan icon red ball alert
+    if countPixelsInPosition_NOW(620,694,10,10,[186, 16, 37], 10, 50, now):
+        currentStep = 1
+        print("social Alert Circle")
+        return True
+    
+    # clan icon red ball alert
+    if countPixelsInPosition_NOW(620,840,10,10,[186, 16, 37], 10, 50, now):
+        currentStep = 1
+        print("social Alert Circle")
+        return True
+    
+    if countPixelsInPosition_NOW(645,1053,30,20,[187,187,187], 1, 50, now):
         currentStep = 1
         print("Rankig Icon")
         return True
     
     # Trading Post icon
-    if countPixelsInPosition_NOW(650,928,45,35,[187,187,187], 1, 50, now, True):
+    if countPixelsInPosition_NOW(650,928,45,35,[187,187,187], 1, 50, now):
         currentStep = 1
         print("Trading Post Icon")
         return True
     
     # Friends icon
-    if countPixelsInPosition_NOW(630,774,40,35,[187,187,187], 1, 50, now, True):
+    if countPixelsInPosition_NOW(630,774,40,35,[187,187,187], 1, 50, now):
         currentStep = 1
         print("Friends Icon")
         return True

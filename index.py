@@ -59,7 +59,7 @@ sell = datetime.now()
 daily = 0
 # duplicate dies
 backing = 0
-
+stop = False # stop threads
 
 def on_click(event=None):
     # `command=` calls function without argument
@@ -197,14 +197,15 @@ def checkEmulatorIsOpen():
    # loopTempleGuardian() # DONE
    
     while True:
-        loopLoggin()
-        loopScrollQuest() # done
-        loopFarming() # done
-        loopEliteQuest() 
-        loopSummoningCircle() # done
-        loopTempleGuardian()  # done
-        FrozenThread() # IN OBSERVATION
-        time.sleep(3)
+        if not stop:
+            loopLoggin()
+            loopScrollQuest() # done
+            loopFarming() # done
+            loopEliteQuest() 
+            loopSummoningCircle() # done
+            loopTempleGuardian()  # done
+            FrozenThread() # IN OBSERVATION
+        time.sleep(1)
 
 def get_img_data(f, maxsize=(1200, 850), first=False):
     """Generate image data using PIL

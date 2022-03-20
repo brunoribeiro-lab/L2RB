@@ -13,23 +13,20 @@ die = cv2.imread("Resources\die.png")
 limitBreak = cv2.imread("Resources\Screenshot_20220101-161653.png")
 dungeon1 = cv2.imread("Resources\Screenshot_20220101-155243.png")
 closeDialog = cv2.imread("Resources\Screenshot_20220101-183441.png")
-summoningCircle2 = cv2.imread("Resources\Screenshot_20220101-141049.png")
+summoningCircle2 = cv2.imread("Resources\summoningCircleText.png")
+templeGuardianResource = cv2.imread("Resources\TempleGuardianResource1.png")
 dungeon = cv2.imread("Resources\Screenshot_20220101-143001.png")
 dungeon2 = cv2.imread("Resources\Screenshot_20220101-150154.png")
-templeGuardianResource = cv2.imread("Resources\TempleGuardianResource1.png")
 invalid1Resource = cv2.imread("Resources\Screenshot_20220307-135104.png")
 invalid2Resource = cv2.imread("Resources\Screenshot_20220306-142327.png")
 # working
-finishedTempleGuardian = 1
+finishedTempleGuardian = 0
 currentStepTempleGuardian = 0 # done this
 inExecution = 0
 thread = False
 jumps = 1
 jumpsC = 0
 now = False
-# 2 bugs
-# verificar telas invalidas
-# verificar se tem tons vermelhos para n repetir e gastar os reds
 
 def loopTempleGuardian():
     global thread, jumpsC, jumps
@@ -121,36 +118,29 @@ def step00():
 
 def step01():
     global now
-    touch(300, 659)  # touch in dungeon
-    time.sleep(2)
-    liveScreen()
-    time.sleep(2)
-    if os.path.isfile('now.png') == True:
-        now = cv2.imread("now.png")
-
-def step02():
-    touch(120, 515)  # touch in Normal Dungeon
-    time.sleep(2)
-    liveScreen()
-    time.sleep(2)
-    if os.path.isfile('now.png') == True:
-        now = cv2.imread("now.png")
-
-def step03():
-    global currentStepTempleGuardian
-    if detectAreInEnd():
-        touch(77, 346)
-        currentStepTempleGuardian = 4  # ready to touch in Temple Guardian
-        return True
-    else:
-        print("Swiping to end")
-        swipe(800, 420, 40, 420, 0.5)  # swipe a little bit to down
-        time.sleep(3)
+    if detectMenuIsOpened() :
+        touch(300, 659)  # touch in dungeon
+        time.sleep(2)
         liveScreen()
         time.sleep(2)
         if os.path.isfile('now.png') == True:
             now = cv2.imread("now.png")
-        return False
+
+def step02():
+    global now
+    if detectDungeonMenuIsOpened():
+        touch(275, 526)  # touch in Normal Dungeon
+        time.sleep(2)
+        liveScreen()
+        time.sleep(2)
+        if os.path.isfile('now.png') == True:
+            now = cv2.imread("now.png")
+
+def step03():
+    global currentStepTempleGuardian
+    touch(485, 434) # touch in Temple Guardian
+    currentStepTempleGuardian = 4  # ready to touch in Temple Guardian
+    return True
 
 def step04():
     global currentStepTempleGuardian, alreadyDone, now, finishedTempleGuardian
@@ -222,67 +212,15 @@ def markLikeDone():
 
 
 def detectAreInEnd():
-    global currentStepTempleGuardian,now, templeGuardianResource
-    if findImageByPosition(166,8,300,400,now, templeGuardianResource) :
+    global currentStepTempleGuardian,now, summoningCircle2
+    if findImage(now, summoningCircle2)  or findImage(now, currentStepTempleGuardian) :
         print("Opening Temple Guardian ....")
         return True
   
     return False
 
-def detectAreInStart():
-    from .loginL2 import now  # extracted text
-    if now is None:
-        time.sleep(7)  # skip to next thread execution
-        return 0
-
-    text = extractTextFromResize(165, 40, 257, 420)
-    print("TEXT FROM RESZIZE : ")
-    print(text)
-    if text.find("Daily Dungeon") > 0:
-        return True
-    elif text.find("strengthening every day") > 0:
-        return True
-    else:
-        return False
-
-
-def detectImMainScreen():
-    global currentStepTempleGuardian
-    if currentStepTempleGuardian == 0:
-        return False
-
-    if currentStepTempleGuardian == 5:
-        return False
-
-    from .loginL2 import now  # extracted text
-    if now is None:
-        time.sleep(7)  # skip to next thread execution
-        return 0
-    elif checkExist("Resources\pot.png"):
-        currentStepTempleGuardian = 0
-        return False
-    elif checkExist("Resources\pot2.png"):
-        currentStepTempleGuardian = 0
-        return False
-    elif checkExist('Resources\clock.png'):  # reward recess point
-        currentStepTempleGuardian = 0
-        return False
-    elif checkExist("Resources\pot3.png"):  # offline mode
-        currentStepTempleGuardian = 0
-        return False
-    elif checkExist("Resources\pot4.png"):  # offline mode
-        currentStepTempleGuardian = 0
-        return False
-    elif checkExist("Resources\pot5.png"):  # offline mode
-        currentStepTempleGuardian = 0
-        return False
-    elif checkExist("Resources\pot6.png"):  # offline mode
-        currentStepTempleGuardian = 0
-        return False
-    return True
-
 def detectInvalidStep():
-    global currentStepSummoningCircle
+    global currentStepTempleGuardian
     if checkExist("Resources\pot.png"): # todo check pot 100
         print("Invalid Step")
         return True
@@ -340,21 +278,28 @@ def invalidStep():
 def detectCurrentStep():
     from .loginL2 import text  # extracted text
     global dungeon1,limitBreak, now, currentStepTempleGuardian, templeGuardianResource, summoningCircle2, dungeon, dungeon2
-    if findImage(now, dungeon1) : # I'm Normal Dungeon ?
+    if detectDungeonMenuIsOpened() and  currentStepTempleGuardian < 3:
+        currentStepTempleGuardian = 2
+        return True
+    elif findImage(now, dungeon1) : # I'm Normal Dungeon ?
         currentStepTempleGuardian = 3
         return True
     elif findImage(now, limitBreak) : # I'm Normal Dungeon
         touch(39,37)
         currentStepTempleGuardian = 3  
         return True
-    elif findImageByPosition(166,8,300,400,now, templeGuardianResource) : # I'm Normal Dungeon
-        currentStepTempleGuardian = 3     
+    elif findImage(now,summoningCircle2) or findImage(now,templeGuardianResource) : # I'm Normal Dungeon
+        print("set Dungeons")
+        currentStepSummoningCircle = 3     
         return True
     elif findImage(now, dungeon) : # I'm Dungeon Screen
         currentStepTempleGuardian = 2    
         return True
     elif findImage(now, dungeon2) : # I'm Main Menu
         currentStepTempleGuardian = 1    
+        return True
+    elif detectMenuIsOpened() and currentStepTempleGuardian != 2:
+        print("Auto detect menu")
         return True
     elif countPixelsInPosition(500, 103, 45, 20, [210, 210, 210], 1, 30,True) and countPixelsInPosition(500, 277, 45, 45, [210, 210, 210], 1, 30,True):
         currentStepTempleGuardian = 2  
@@ -400,3 +345,103 @@ def checkExist(pic):
         print("shape not found")  
         return False
     
+
+def detectDungeonMenuIsOpened():
+    global now, currentStepTempleGuardian
+    print("Detecting dungeon menu is opened")
+    # Normal Dungeon Alert red circle
+    if countPixelsInPosition_NOW(500,330,10,10,[186, 16, 37], 1, 50, now, True):
+        currentStepTempleGuardian = 2
+        print("Dungeon Alert")
+        return True
+    
+    # World Raid icon
+    if countPixelsInPosition_NOW(510,990,10,20,[195,196,197], 1, 100, now) or countPixelsInPosition_NOW(510,990,10,20,[225,224,222], 1, 100, now):
+        currentStepTempleGuardian = 2
+        print("World Raid Icon")
+        return True
+    
+    # normal dungeon icon
+    if countPixelsInPosition_NOW(510,264,30,20,[195,196,197], 1, 100, now, True):
+        currentStepTempleGuardian = 2
+        print("Normal Dungeon Icon")
+        return True
+    
+    # Temporal Rift icon
+    if countPixelsInPosition_NOW(513,412,30,20,[195,196,197], 1, 100, now, True):
+        currentStepTempleGuardian = 2
+        print("Temporal Rift Icon")
+        return True
+    
+    if countPixelsInPosition_NOW(510,990,10,20,[187,187,187], 1, 100, now, True):
+        currentStepTempleGuardian = 2
+        print("World Raid Icon2")
+        return True
+    
+    # normal dungeon icon
+    if countPixelsInPosition_NOW(510,264,30,20,[187,187,187], 1, 100, now, True):
+        currentStepTempleGuardian = 2
+        print("Normal Dungeon Icon2")
+        return True
+    
+    # Temporal Rift icon
+    if countPixelsInPosition_NOW(513,412,30,20,[187,187,187], 1, 100, now, True):
+        currentStepTempleGuardian = 2
+        print("Temporal Rift Icon2")
+        return True
+    
+    
+    return False
+
+def detectMenuIsOpened():
+    global now, currentStepTempleGuardian
+    # Rankig icon
+    print("Detecting menu is opened")
+    # Dungeon icon red ball alert
+    if countPixelsInPosition_NOW(622,405,10,10,[186, 16, 37], 10, 50, now):
+        currentStepTempleGuardian = 1
+        print("Dungeon Alert Circle")
+        return True
+    
+    # Dungeon icon red ball alert
+    if countPixelsInPosition_NOW(620,550,10,10,[186, 16, 37], 10, 50, now):
+        currentStepTempleGuardian = 1
+        print("Batlefield Alert Circle")
+        return True
+    
+    # Batlefield icon red ball alert
+    if countPixelsInPosition_NOW(620,550,10,10,[186, 16, 37], 10, 50, now):
+        currentStepTempleGuardian = 1
+        print("Batlefield Alert Circle")
+        return True
+    
+    # clan icon red ball alert
+    if countPixelsInPosition_NOW(620,694,10,10,[186, 16, 37], 10, 50, now):
+        currentStepTempleGuardian = 1
+        print("social Alert Circle")
+        return True
+    
+    # clan icon red ball alert
+    if countPixelsInPosition_NOW(620,840,10,10,[186, 16, 37], 10, 50, now):
+        currentStepTempleGuardian = 1
+        print("social Alert Circle")
+        return True
+    
+    if countPixelsInPosition_NOW(645,1053,30,20,[187,187,187], 1, 50, now, True):
+        currentStepTempleGuardian = 1
+        print("Rankig Icon")
+        return True
+    
+    # Trading Post icon
+    if countPixelsInPosition_NOW(650,928,45,35,[187,187,187], 1, 50, now, True):
+        currentStepTempleGuardian = 1
+        print("Trading Post Icon")
+        return True
+    
+    # Friends icon
+    if countPixelsInPosition_NOW(630,774,40,35,[187,187,187], 1, 50, now, True):
+        currentStepTempleGuardian = 1
+        print("Friends Icon")
+        return True
+    
+    return False
